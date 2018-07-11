@@ -1,4 +1,4 @@
-#Server for at-school written in Python Flask.
+# Server for at-school written in Python Flask.
 
 ### Steps to get the server running
 *   Make sure have the public key and private key inside a folder called `keys` in the main directory.
