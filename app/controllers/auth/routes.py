@@ -5,7 +5,17 @@ from app.models import User
 from app import db
 from app.controllers.errors import bad_request
 
-
+"""
+Sign in an user
+Arguments:
+    - username: username of the user
+    - password: password of the user
+Returns upon success:
+    - token: the access token for that user
+    - avatarUrl: the url to the user avatar
+    - userType: the access level of the user (1 for student and 2 for teacher)
+    - fullname: fullname of the user
+"""
 @bp.route("/auth/signin", methods=["POST"])
 def signin():
     try:
@@ -26,7 +36,6 @@ def signin():
             fullname = user.firstname + " " + user.lastname
             return jsonify({
                 "token": token, 
-                "success": True, 
                 "avatarUrl": user.get_default_avatar(256), 
                 "userType": user.access_level,
                 "fullname": fullname
@@ -35,7 +44,12 @@ def signin():
         return bad_request("Wrong arguments.")
     return bad_request("There is an internal server error. Please contact the IT support.")
 
-
+"""
+Sign the user out.
+Arguments:
+    - token: access token of the user
+Returns nothing upon success.
+"""
 @bp.route("/auth/signout", methods=["POST"])
 def signout():
     try:
@@ -44,11 +58,23 @@ def signout():
         payload = jwt.decode(token, open(current_app.config["JWT_KEY_PUBLIC"]).read(), algorithms=['RS256'])
         user = User.query.filter_by(id=payload["id"]).first()
         user.logout()
-        return jsonify({"success": True})
+        return jsonify({})
     except KeyError:
         return bad_request("Wrong arguments.")
     return bad_request("There is an internal server error. Please contact the IT support.")
 
+
+"""
+Register the user
+Arguments:
+    - username: username of the user
+    - password: password of the user
+    - password1: re-type password of the user
+    - firstname: firstname of the uesr
+    - lastname: lastname of the uesr
+    - email: email of the user
+    - accessLevel: access level of the user (1 for student, 2 for teacher)
+"""
 @bp.route("/auth/register", methods=["POST"])
 def register():
     try:
@@ -78,13 +104,20 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        return jsonify({"success": True})
+        return jsonify({})
 
     except KeyError: 
         return bad_request("Wrong arguments.")
     return bad_request("There is an internal server error. Please contact the IT support.")
 
 
+"""
+Check if a username is duplicated
+Arguments:
+    - username: string
+Returns:
+    - duplicate: false if not duplicated or else true
+"""
 @bp.route("/auth/duplicateuser", methods=["POST"])
 def duplicate_user():
     try:

@@ -12,13 +12,20 @@ class Message(db.Model):
     __tablename__ = "message"
 
     id = db.Column(db.Integer, primary_key=True)
-    to_id = db.Column(db.Integer)
     from_id = db.Column(db.Integer)
     content = db.Column(db.String(1000))
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    chat_room = db.Column(db.Integer)
 
     def __repr__(self):
         return "<Messege from {} to {}>".format(self.from_id, self.to_id)
+
+class ChatRoom(db.Model):
+    __tablename__ = "chat_room"
+    id = db.Column(db.Integer, primary_key=True)
+    first_user = db.Column(db.Integer)
+    second_user = db.Column(db.Integer)
+    access_time = db.Column(db.DateTime, default=datetime.utcnow)
 
 class User(db.Model):
     __tablename__ = "user"
@@ -86,6 +93,7 @@ class Class(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100))
     description = db.Column(db.String(255))
+    avatar_data = db.Column(db.String(100000))
     line_id = db.Column(db.Integer, db.ForeignKey("line.id"))
     teacher_id = db.Column(db.Integer, db.ForeignKey("user.id"))
     falcuty_id = db.Column(db.Integer, db.ForeignKey("falcuty.id"))
