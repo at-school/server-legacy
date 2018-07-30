@@ -1,4 +1,4 @@
-#Server for at-school written in Python Flask.
+# Server for at-school written in Python Flask.
 
 ### Steps to get the server running
 *   Make sure have the public key and private key inside a folder called `keys` in the main directory.
@@ -12,8 +12,8 @@
 *   Initialize the timetable:
     *   Run `flask shell` to get into the flask context.
     *   Invoke `emojifier_setup` to setup the database for word embeddings.
-    *   Invoke `schedule_setup` to setup the schedule.
-    *   Invoke `falcuty_setup` to setup the falcuty of the school.
+    *   Invoke `schedule_setup` to setup the schedule: schedule_setup(db, Day, Line, Line_Schedule).
+    *   Invoke `falcuty_setup` to setup the falcuty of the school: falcuty_setup(db, Falcuty).
 * Last step: `python runserver.py`. :smile: :smile: :smile:
 
 *If cannot have the model, remove everything that has emofjier in `at-school-server/runserver.py` and `at-school-server/app/__init__.py`.*
