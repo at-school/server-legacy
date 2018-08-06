@@ -138,15 +138,50 @@ class Post(db.Model):
     def __repr__(self):
         return "<Post {}>".format(self.title)
         
-# class Roll(db.Model):
-    
-#     user_id = db.Column(db.Integer)
-#     class_id = db.Column(db.Integer)
+class Roll(db.Model):
+    __tablename__ = "roll"
 
-#     def __repr__(self):
-#         return "<Roll {} contains user {}>".format(
-#             self.class_id, self.user_id
-#         )
+    user_id = db.Column(db.Integer)
+    class_id = db.Column(db.Integer)
+
+    def __repr__(self):
+        return "<Roll {} contains user {}>".format(
+            self.class_id, self.user_id
+        )
+
+class Grades(db.Model):
+    __tablename__ = "grades"
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'))
+    task_id = db.Column(db.Integer)
+    score = db.Column(db.Integer)
+
+    def __repr__(self):
+        return "<Grade {}>".format(self.id)
+
+
+class Task(db.Model):
+    __tablename__ = "task"
+
+    id = db.Column(db.Integer, primary_key=True)
+    class_id = db.Column(db.Integer, db.ForeignKey('class.id'))
+    title = db.Column(db.String(100))
+    users = db.Column(db.String(1000))
+    desc = db.Column(db.String(300))
+    file_loc = db.Column(db.String(300))
+    due_date = db.Column(db.String(100))
+    active = db.Column(db.Boolean())
+
+    def __repr__(self):
+        return "<Task {} Due: {}>".format(self.id, self.due_date)
+
+    def notify(self):
+        for student in self.users:
+            try:
+                User.query.filter_by(id=student)
+            # user.notify()
 
 class School(db.Model):
     

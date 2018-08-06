@@ -1,9 +1,9 @@
 import jwt
 from app import db
 from app.controllers.classroom import bp
-from app.models import Class, User
+from app.models import Class, User, Task
 from config import Config
-from flask import current_app, jsonify, request
+from flask import current_app, jsonify, request, bad_request
 
 """
 Create or edit a class for a user.
@@ -157,6 +157,34 @@ def teacher_has_class():
             return jsonify({"result": False})
         else:
             return jsonify({"result": True, "classes": classes})
+
+    except KeyError:
+        pass
+
+@bp.route("/classroom/addtask", method=["POST"])
+def addtask():
+    try:
+        data = request.get_json()
+
+        # get user from jwt token
+        token = data["token"]
+        payload = jwt.decode(token, open(
+            current_app.config["JWT_KEY_PUBLIC"]).read(), algorithms=['RS256'])
+        user = User.query.filter_by(id=payload["uid"]).first()
+        class_ = Class.query.filter_by(id=payload["cid"]).first()
+        if not user:
+            return bad_request("User does not exist.")
+
+        # check if user has enough access level
+        if user.access_level != 2:
+            return bad_request("Do not have access.")
+
+        task = Task(
+            class_id=class_.id, title=payload['title'], desc=payload['desc'],
+            users=payload['users'], due_date=payload['due'], active=True
+        )
+
+        return jsonify({"result": True, "task_id": task.id})
 
     except KeyError:
         pass
