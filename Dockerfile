@@ -40,6 +40,7 @@ COPY keys keys
 COPY migrations migrations
 COPY runserver.py runserver.py
 COPY config.py config.py
+COPY .env .env
 
 EXPOSE 5000
 CMD ["python3", "runserver.py"]

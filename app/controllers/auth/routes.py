@@ -1,9 +1,16 @@
-import jwt
-from flask import request, jsonify, current_app, redirect, url_for
+from flask import current_app, jsonify, redirect, request, url_for
+from flask_jwt_extended import (create_access_token, get_jwt_claims,
+                                get_jwt_identity, jwt_required)
+
+import app
+from app import jwt
 from app.controllers.auth import bp
-from app.models import User
-from app import db
+from app.controllers.auth.queries import *
 from app.controllers.errors import bad_request
+from app.decorators import teacher_required, admin_required
+from app.models import User
+from app.schema import schema
+
 
 """
 Sign in an user
@@ -16,33 +23,56 @@ Returns upon success:
     - userType: the access level of the user (1 for student and 2 for teacher)
     - fullname: fullname of the user
 """
+
+
+@jwt.user_claims_loader
+def add_claims_to_access_token(user):
+    return {'role': int(user.get("accessLevel"))}
+
+
+@jwt.user_identity_loader
+def user_identity_lookup(user):
+    return user.get("username", None)
+
+
 @bp.route("/auth/signin", methods=["POST"])
 def signin():
     try:
         data = request.get_json()
         username = data["username"]
         password = data["password"]
-        user = User.query.filter_by(username=username).first()
-        if not user:
+        query = loginQuery(username)
+        user = schema.execute(query, context_value={"accessLevel": 4})
+        user = user.data.get("user")
+        if len(user) != 1:
             return bad_request("Incorrect username or password.")
-        if user and user.check_password(password):
-            public_key = open(current_app.config["JWT_KEY_PUBLIC"]).read()
-            private_key = open(current_app.config["JWT_KEY_PRIVATE"]).read()
-            token = jwt.encode({
-                "id": user.id,
-                "username": username,
-            }, private_key, algorithm="RS256").decode("utf-8")
-            user.login(token)
-            fullname = user.firstname + " " + user.lastname
+        user = user[0]
+        if User.checkPassword(user.get("password", None), password):
+            accessToken = create_access_token(identity=user)
+            print(accessToken)
             return jsonify({
-                "token": token, 
-                "avatarUrl": user.get_default_avatar(256), 
-                "userType": user.access_level,
-                "fullname": fullname
-                })
+                "token": accessToken,
+                "username": user.get("username"),
+                "avatarUrl": user.get("avatar"),
+                "userType": user.get("accessLevel"),
+                "fullname": user.get("firstname") + " " + user.get("lastname")
+            })
     except KeyError:
         return bad_request("Wrong arguments.")
     return bad_request("There is an internal server error. Please contact the IT support.")
+
+
+@bp.route('/protected', methods=['GET'])
+@teacher_required
+def protected():
+    ret = {
+        'current_identity': get_jwt_identity(),  # test
+        'current_roles': get_jwt_claims()  # ['foo', 'bar']
+    }
+    print(get_jwt_claims())
+    print(get_jwt_identity())
+    return jsonify(ret), 200
+
 
 """
 Sign the user out.
@@ -50,14 +80,13 @@ Arguments:
     - token: access token of the user
 Returns nothing upon success.
 """
+
+
 @bp.route("/auth/signout", methods=["POST"])
 def signout():
     try:
         data = request.get_json()
         token = data["token"]
-        payload = jwt.decode(token, open(current_app.config["JWT_KEY_PUBLIC"]).read(), algorithms=['RS256'])
-        user = User.query.filter_by(id=payload["id"]).first()
-        user.logout()
         return jsonify({})
     except KeyError:
         return bad_request("Wrong arguments.")
@@ -75,6 +104,8 @@ Arguments:
     - email: email of the user
     - accessLevel: access level of the user (1 for student, 2 for teacher)
 """
+
+
 @bp.route("/auth/register", methods=["POST"])
 def register():
     try:
@@ -85,30 +116,27 @@ def register():
         firstname = data["firstname"]
         lastname = data["lastname"]
         email = data["email"]
-        access_level = data["accessLevel"]
+        accessLevel = data["accessLevel"]
 
-        if access_level not in ["1", "2", 1, 2]:
+        if accessLevel not in ["1", "2", 1, 2]:
             return bad_request("Type is not correct.")
 
-        if (password != password1 or len(password) < 8 or not firstname 
-            or not lastname or not email or not username):
+        if (password != password1 or len(password) < 8 or not firstname
+                or not lastname or not email or not username):
             return bad_request("Please check in with all the fields.")
 
-        user = User.query.filter_by(username=username).first()
-        if (user):
-            return bad_request("Username already exists.")
-        
-        # when passed all the validations, add user in the database
-        user = User(username=username, email=email, firstname=firstname, lastname=lastname, access_level=int(access_level))
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
+        user = schema.execute(loginQuery(username))
+        if len(user.data.get("user")) != 0:
+            return bad_request("User already exists.")
+
+        schema.execute(registerQuery(username=username, firstname=firstname, lastname=lastname,
+                                     email=email, password=password, accessLevel=int(accessLevel)))
 
         return jsonify({})
 
-    except KeyError: 
+    except KeyError:
         return bad_request("Wrong arguments.")
-    return bad_request("There is an internal server error. Please contact the IT support.")
+    # return bad_request("There is an internal server error. Please contact the IT support.")
 
 
 """
@@ -118,16 +146,17 @@ Arguments:
 Returns:
     - duplicate: false if not duplicated or else true
 """
+
+
 @bp.route("/auth/duplicateuser", methods=["POST"])
 def duplicate_user():
     try:
         data = request.get_json()
         username = data["username"]
 
-        user = User.query.filter_by(username=username).first()
-        if user:
+        user = schema.execute(loginQuery(username))
+        if len(user.data.get("user")) != 0:
             return jsonify({"duplicate": True})
-        
 
         return jsonify({"duplicate": False})
     except KeyError:
