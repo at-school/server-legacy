@@ -21,7 +21,7 @@ socketio = SocketIO()
 def graphql_view():
     view = GraphQLView.as_view(
         'graphql', schema=schema, graphiql=True, context={"user": ""})
-    return view
+    return jwt_required(view)
 
 
 def create_app(config_class=Config):

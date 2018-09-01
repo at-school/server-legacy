@@ -13,11 +13,16 @@ class User():
         self.accessLevel = accessLevel
         self.avatar = 'https://www.gravatar.com/avatar/{}?d=identicon&s=256'.format(
             md5(self.username.lower().encode('utf-8')).hexdigest())
+        self.password = ""
 
     def get_default_avatar(self, size):
         digest = md5(self.username.lower().encode('utf-8')).hexdigest()
         return 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
             digest, size)
+    
+    def setPassword(self, password):
+        """Runs the passwords through a hash and appends."""
+        self.password = generate_password_hash(str(password))
 
     @classmethod
     def findUsers(self, id=None, username=None, firstname=None):

@@ -35,9 +35,7 @@ COPY requirements.txt requirements.txt
 RUN pip3 install -r requirements.txt
 
 COPY app app
-COPY app.db app.db
 COPY keys keys
-COPY migrations migrations
 COPY runserver.py runserver.py
 COPY config.py config.py
 COPY .env .env

@@ -37,7 +37,7 @@ class UserSchema(graphene.ObjectType):
             if str(ObjectId(self._id)) in room["users"]:
                 returnedChatrooms.append(room)
 
-        return map(lambda room: ChatroomSchema(_id=room["_id"]), returnedChatrooms)
+        return map(lambda room: ChatroomSchema(_id=room["_id"], name=room["name"]), returnedChatrooms)
 
 
 class UserInput(graphene.InputObjectType):
@@ -73,11 +73,13 @@ class MessageInput(graphene.InputObjectType):
     chatroomId = graphene.ID()
     messageContent = graphene.String()
     senderId = graphene.ID()
+    senderAvatar = graphene.String()
 
 
 class MessageSchema(graphene.ObjectType):
     _id = graphene.ID()
     senderId = graphene.ID()
+    senderAvatar = graphene.String()
     messageContent = graphene.String()
     timestamp = graphene.DateTime()
     chatroomId = graphene.ID()
@@ -91,19 +93,28 @@ class CreateMessage(graphene.Mutation):
 
     def mutate(self, info, arguments):
         timestamp = datetime.utcnow()
+
+        # get the sender avatar and id
+        senderUsername = get_jwt_identity()
+        sender = db.users.find_one({"username": senderUsername})
+        senderId = str(sender["_id"])
+        senderAvatar = sender["avatar"]
+
         inserted_id = db.messages.insert_one(
             {
                 "messageContent": arguments["messageContent"],
                 "chatroomId": arguments["chatroomId"],
-                "senderId": arguments["senderId"],
-                "timestamp": timestamp}
+                "senderId": senderId,
+                "timestamp": timestamp,
+                "senderAvatar": senderAvatar
+            }
         ).inserted_id
 
         db.chatrooms.update_one({"_id": ObjectId(arguments["chatroomId"])}, {"$set": {
             "timestamp": timestamp
         }}, upsert=True)
 
-        return MessageSchema(messageContent=arguments["messageContent"], _id=inserted_id, senderId=arguments["senderId"], timestamp=timestamp)
+        return MessageSchema(messageContent=arguments["messageContent"], _id=inserted_id, senderId=senderId, timestamp=timestamp)
 
 
 class ChatroomSchema(graphene.ObjectType):
@@ -111,10 +122,11 @@ class ChatroomSchema(graphene.ObjectType):
     users = graphene.List(UserSchema)
     messages = graphene.List(MessageSchema)
     timestamp = graphene.DateTime()
+    name = graphene.String()
+    latestMessage = graphene.List(MessageSchema)
 
     def resolve_messages(self, info):
-        print("Here")
-        messages = list(db.messages.find({"chatroomId": self._id}))
+        messages = list(db.messages.find({"chatroomId": str(self._id)}))
         print(messages)
         return map(lambda message: MessageSchema(**message), messages)
 
@@ -128,6 +140,12 @@ class ChatroomSchema(graphene.ObjectType):
             {"_id": ObjectId(id)}), userIds)
 
         return map(lambda userInfo: UserSchema(**userInfo), users)
+
+    def resolve_latestMessage(self, info):
+        print("Hello")
+        messages = list(db.messages.find({"chatroomId": str(self._id)}).sort(
+            'timestamp', pymongo.DESCENDING).limit(1))
+        return map(lambda message: MessageSchema(**message), messages)
 
 
 class ChatroomInput(graphene.InputObjectType):
@@ -161,10 +179,11 @@ class CreateChatroom(graphene.Mutation):
 
         inserted_id = db.chatrooms.insert_one({
             "users": [firstId, secondId],
-            "timestamp": timestamp
+            "timestamp": timestamp,
+            "name": username
         }).inserted_id
 
-        return ChatroomSchema(_id=inserted_id, timestamp=timestamp)
+        return ChatroomSchema(_id=inserted_id, timestamp=timestamp, name=username)
 
 
 class Query(graphene.ObjectType):
@@ -191,10 +210,11 @@ class Query(graphene.ObjectType):
     def resolve_chatroom(self, info, arguments):
         chatrooms = list(db.chatrooms.find(
             {"_id": ObjectId(arguments["_id"])}))
-        return map(lambda room: ChatroomSchema(_id=room["_id"]), chatrooms)
+        print(chatrooms)
+        return map(lambda room: ChatroomSchema(_id=room["_id"], name=room["name"]), chatrooms)
 
     def resolve_message(self, info, arguments):
-        chatroomId = arguments["chatroomId", None]
+        chatroomId = arguments.get("chatroomId", None)
 
         if chatroomId:
             messages = list(db.messages.find({"chatroomId": chatroomId}))

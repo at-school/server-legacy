@@ -53,6 +53,7 @@ def signin():
             return jsonify({
                 "token": accessToken,
                 "username": user.get("username"),
+                "userId": str(user.get("Id")),
                 "avatarUrl": user.get("avatar"),
                 "userType": user.get("accessLevel"),
                 "fullname": user.get("firstname") + " " + user.get("lastname")

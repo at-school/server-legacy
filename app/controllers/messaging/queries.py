@@ -1,6 +1,6 @@
 
 
-def createMessageQuery(senderId, messageContent, chatroomId):
+def createMessageQuery(messageContent, chatroomId):
     """
     Arguments:
       - userInfo: a dictionary contains user info: username, 
@@ -9,9 +9,9 @@ def createMessageQuery(senderId, messageContent, chatroomId):
 
     return '''
         mutation addMessage {
-            createMessage (arguments: { senderId: "%s", messageContent: "%s",
+            createMessage (arguments: { messageContent: "%s",
                                      chatroomId: "%s" } ) {
                 Id
             }
         }
-    ''' % (senderId, messageContent, chatroomId)
+    ''' % (messageContent, chatroomId)

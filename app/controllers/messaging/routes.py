@@ -9,7 +9,7 @@ from app.schema import schema
 
 from ... import socketio
 
-@socketio.on('join', namespace='/message')
+@socketio.on('sendMessage', namespace='/message')
 @jwt_required
 def join(data):
     """Sent by clients when they enter a room.
@@ -35,9 +35,8 @@ def join(data):
     if message:
 
         # append message to the message table
-        schema.execute(createMessageQuery(userId, message, room))
-        emit('messageStatus', {
-            "self": False,
-            "senderAvatar": user["avatar"],
-            "content": message,
+        schema.execute(createMessageQuery(message, room))
+        print("Emitting back")
+        emit('newMessage', {
+            "roomId": room
         }, room=room)
