@@ -9,6 +9,7 @@ from app.schema import schema
 
 from ... import socketio
 
+
 @socketio.on('sendMessage', namespace='/message')
 @jwt_required
 def join(data):
@@ -27,16 +28,23 @@ def join(data):
     if not user:
         return False
 
-    message = data.get("message", None)
+    message = data.get("messageContent", None)
 
-    room = data['room']
+    room = data['chatroomId']
+    print(data)
     join_room(room)
 
     if message:
 
         # append message to the message table
-        schema.execute(createMessageQuery(message, room))
+        # schema.execute(createMessageQuery(message, room))
         print("Emitting back")
         emit('newMessage', {
-            "roomId": room
+            "Id": data["Id"],
+            "messageContent": data["messageContent"],
+            "senderAvatar": data["senderAvatar"],
+            "senderUsername": username,
+            "chatroomId": data["chatroomId"],
+            "senderId": str(userId),
+            "__typename": data["__typename"]
         }, room=room)

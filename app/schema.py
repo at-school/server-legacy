@@ -21,6 +21,7 @@ class UserSchema(graphene.ObjectType):
     avatar = graphene.String()
     classrooms = graphene.List(lambda: ClassroomSchema)
     chatrooms = graphene.List(lambda: ChatroomSchema)
+    latestChatroom = graphene.List(lambda: ChatroomSchema)
     _id = graphene.ID()
 
     def resolve_classrooms(self, info):
@@ -38,6 +39,19 @@ class UserSchema(graphene.ObjectType):
                 returnedChatrooms.append(room)
 
         return map(lambda room: ChatroomSchema(_id=room["_id"], name=room["name"]), returnedChatrooms)
+
+    def resolve_latestChatroom(self, info):
+        chatrooms = list(db.chatrooms.find({}).sort(
+            'timestamp', pymongo.DESCENDING))
+        returnedChatrooms = []
+
+        for room in chatrooms:
+            if str(ObjectId(self._id)) in room["users"]:
+                returnedChatrooms.append(room)
+                break
+
+        return map(lambda room: ChatroomSchema(_id=room["_id"], name=room["name"]), returnedChatrooms)
+
 
 
 class UserInput(graphene.InputObjectType):
@@ -114,7 +128,9 @@ class CreateMessage(graphene.Mutation):
             "timestamp": timestamp
         }}, upsert=True)
 
-        return MessageSchema(messageContent=arguments["messageContent"], _id=inserted_id, senderId=senderId, timestamp=timestamp)
+        return MessageSchema(messageContent=arguments["messageContent"], 
+                            _id=inserted_id, senderId=senderId, 
+                            timestamp=timestamp, senderAvatar=senderAvatar)
 
 
 class ChatroomSchema(graphene.ObjectType):
@@ -142,7 +158,6 @@ class ChatroomSchema(graphene.ObjectType):
         return map(lambda userInfo: UserSchema(**userInfo), users)
 
     def resolve_latestMessage(self, info):
-        print("Hello")
         messages = list(db.messages.find({"chatroomId": str(self._id)}).sort(
             'timestamp', pymongo.DESCENDING).limit(1))
         return map(lambda message: MessageSchema(**message), messages)
