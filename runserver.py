@@ -2,7 +2,7 @@ from app import create_app
 # from app.models import User, Message, GloveEmbedding, Line, Day, Line_Schedule, Falcuty, Class
 # from app.controllers.emojifier.helpers import emojifier_setup
 # from app.controllers.schedule.helpers import schedule_setup, setup_line_time
-# from app.controllers.classroom.helpers import falcuty_setup
+from app.controllers.classroom.helpers import setup_line_time
 from app.models import User
 
 # get the app instance
@@ -26,7 +26,8 @@ def make_shell_context():
     #     "falcuty_setup": falcuty_setup
     # }
     return {
-        "User": User
+        "User": User,
+        "setup_line_time": setup_line_time
     }
 
 

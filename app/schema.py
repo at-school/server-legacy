@@ -53,6 +53,21 @@ class UserSchema(graphene.ObjectType):
         return map(lambda room: ChatroomSchema(_id=room["_id"], name=room["name"]), returnedChatrooms)
 
 
+class ScheduleSchema(graphene.ObjectType):
+    _id = graphene.ID()
+    line = graphene.String()
+    day = graphene.String()
+    startTime = graphene.String()
+    endTime = graphene.String()
+
+
+class ScheduleInput(graphene.InputObjectType):
+    _id = graphene.ID()
+    line = graphene.String()
+    day = graphene.String()
+    startTime = graphene.String()
+    endTime = graphene.String()
+
 
 class UserInput(graphene.InputObjectType):
     username = graphene.String()
@@ -128,9 +143,9 @@ class CreateMessage(graphene.Mutation):
             "timestamp": timestamp
         }}, upsert=True)
 
-        return MessageSchema(messageContent=arguments["messageContent"], 
-                            _id=inserted_id, senderId=senderId, 
-                            timestamp=timestamp, senderAvatar=senderAvatar)
+        return MessageSchema(messageContent=arguments["messageContent"],
+                             _id=inserted_id, senderId=senderId,
+                             timestamp=timestamp, senderAvatar=senderAvatar)
 
 
 class ChatroomSchema(graphene.ObjectType):
@@ -209,6 +224,8 @@ class Query(graphene.ObjectType):
         ChatroomSchema, arguments=ChatroomInput(required=True))
     message = graphene.List(
         MessageSchema, arguments=MessageInput(required=True))
+    schedule = graphene.List(
+        ScheduleSchema, arguments=ScheduleInput(required=True))
 
     def resolve_user(self, info, arguments):
         users = list(db.users.find(arguments))
@@ -234,6 +251,11 @@ class Query(graphene.ObjectType):
         if chatroomId:
             messages = list(db.messages.find({"chatroomId": chatroomId}))
             return map(lambda message: MessageSchema(**message), messages)
+
+    def resolve_schedule(self, info, arguments):
+        schedule = list(db.schedule.find(arguments))
+
+        return map(lambda s: ScheduleSchema(**s), schedule)
 
 
 class CreateUser(graphene.Mutation):
