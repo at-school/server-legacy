@@ -9,7 +9,7 @@ from app.controllers.auth.queries import *
 from app.controllers.errors import bad_request
 from app.decorators import teacher_required, admin_required
 from app.models import User
-from app.schema import schema
+from app.graphql import schema
 
 
 """

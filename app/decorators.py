@@ -17,6 +17,7 @@ def admin_required(fn):
             return fn(*args, **kwargs)
     return wrapper
 
+
 def teacher_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):

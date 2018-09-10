@@ -10,7 +10,7 @@ from flask_jwt_extended import (
 from flask_socketio import SocketIO
 
 from app import models
-from app.schema import schema
+from app.graphql import schema
 from config import Config
 
 cors = CORS()
@@ -51,8 +51,8 @@ def create_app(config_class=Config):
     # from app.controllers.schedule import bp as schedule_bp
     # app.register_blueprint(schedule_bp)
 
-    # from app.controllers.classroom import bp as classroom_bp
-    # app.register_blueprint(classroom_bp)
+    from app.controllers.classroom import bp as classroom_bp
+    app.register_blueprint(classroom_bp)
 
     # from app.controllers.errors import bp as errors_bp
     # app.register_blueprint(errors_bp)

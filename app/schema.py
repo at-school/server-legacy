@@ -22,12 +22,25 @@ class UserSchema(graphene.ObjectType):
     classrooms = graphene.List(lambda: ClassroomSchema)
     chatrooms = graphene.List(lambda: ChatroomSchema)
     latestChatroom = graphene.List(lambda: ChatroomSchema)
+    studentClassroom = graphene.List(lambda: ClassroomSchema)
     _id = graphene.ID()
 
     def resolve_classrooms(self, info):
         classrooms = list(db.classrooms.find(
             {"teacherUsername": self.username}))
         return map(lambda i: ClassroomSchema(**i), classrooms)
+
+    def resolve_studentClassroom(self, info):
+        # get the user info from the database
+
+        user = db.users.find_one({"_id": ObjectId(self._id)})
+        # get the classes
+        classes = user.get("studentClassroom", [])
+
+        # get the classes info from the database
+        classes = map(lambda classId: db.classrooms.find_one(
+            {"_id": ObjectId(classId)}), classes)
+        return map(lambda classInfo: ClassroomSchema(**classInfo), classes)
 
     def resolve_chatrooms(self, info):
         chatrooms = list(db.chatrooms.find({}).sort(
@@ -70,6 +83,7 @@ class ScheduleInput(graphene.InputObjectType):
 
 
 class UserInput(graphene.InputObjectType):
+    _id = graphene.ID()
     username = graphene.String()
     firstname = graphene.String()
     lastname = graphene.String()
@@ -86,6 +100,15 @@ class ClassroomSchema(graphene.ObjectType):
     teacherUsername = graphene.String()
     lineId = graphene.String()
     falcutyId = graphene.String()
+    students = graphene.List(UserSchema)
+
+    def resolve_students(self, info):
+        classroomData = db.classrooms.find_one({"_id": ObjectId(self._id)})
+        studentList = classroomData["students"]
+        print(studentList)
+        studentList = map(lambda student: db.users.find_one(
+            {"_id": ObjectId(student)}),  studentList)
+        return map(lambda student: UserSchema(**student), studentList)
 
 
 class ClassroomInput(graphene.InputObjectType):
@@ -228,14 +251,17 @@ class Query(graphene.ObjectType):
         ScheduleSchema, arguments=ScheduleInput(required=True))
 
     def resolve_user(self, info, arguments):
-        users = list(db.users.find(arguments))
+        users = None
+        if arguments.get("_id", None):
+            users = list(db.users.find({"_id": ObjectId(arguments["_id"])}))
+        else:
+            users = list(db.users.find(arguments))
+        print(users)
         return map(lambda i: UserSchema(**i), users)
 
     def resolve_classroom(self, info, arguments):
         if arguments.get("_id", None):
             arguments["_id"] = ObjectId(arguments["_id"])
-        if not arguments.get("teacherUsername", None):
-            arguments["teacherUsername"] = get_jwt_identity()
         classrooms = list(db.classrooms.find(arguments))
         return map(lambda i: ClassroomSchema(**i), classrooms)
 
@@ -274,7 +300,8 @@ class CreateUser(graphene.Mutation):
             "lastname": u.lastname,
             "email": u.email,
             "accessLevel": u.accessLevel,
-            "avatar": u.avatar
+            "avatar": u.avatar,
+            "studentClassroom": []
         })
         return UserSchema(**arguments, avatar=u.avatar)
 
@@ -287,8 +314,30 @@ class CreateClassroom(graphene.Mutation):
 
     def mutate(self, info, arguments):
         arguments["teacherUsername"] = get_jwt_identity()
+        arguments["students"] = []
         db.classrooms.insert_one(arguments)
         return ClassroomSchema(**arguments)
+
+
+class AddStudentInClassroomInput(graphene.InputObjectType):
+    classId = graphene.ID()
+    studentId = graphene.ID()
+
+
+class AddStudentInClassroom(graphene.Mutation):
+    class Arguments:
+        arguments = AddStudentInClassroomInput(required=True)
+
+    Output = UserSchema
+
+    def mutate(self, info, arguments):
+        print("Here")
+        db.classrooms.update({'_id': ObjectId(arguments["classId"])}, {
+                             '$push': {'students': arguments["studentId"]}})
+        db.users.update({'_id': ObjectId(arguments["studentId"])}, {
+                             '$push': {'studentClassroom': arguments["classId"]}})
+        user = db.users.find_one({"_id": ObjectId(arguments["studentId"])})
+        return UserSchema(**user)
 
 
 class RemoveClassroomInput(graphene.InputObjectType):
@@ -333,6 +382,7 @@ class Mutation(graphene.ObjectType):
     editClassroom = EditClassroom.Field()
     createChatroom = CreateChatroom.Field()
     createMessage = CreateMessage.Field()
+    addStudentInClassroom = AddStudentInClassroom.Field()
 
 
 schema = graphene.Schema(query=Query, mutation=Mutation)

@@ -5,7 +5,7 @@ from flask_socketio import emit, join_room, leave_room, send
 
 from app.controllers.messaging.queries import *
 from app.database import db
-from app.schema import schema
+from app.graphql import schema
 
 from ... import socketio
 
