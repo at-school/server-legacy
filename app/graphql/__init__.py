@@ -29,6 +29,7 @@ from app.graphql.mutations.editClassroom import EditClassroom
 from app.graphql.mutations.createChatRoom import CreateChatroom
 from app.graphql.mutations.createMessage import CreateMessage
 from app.graphql.mutations.addStudentToClassroom import AddStudentToClassroom
+from app.graphql.mutations.removeStudentFromClassroom import RemoveStudentFromClassroom
 
 class Mutation(graphene.ObjectType):
     createUser = CreateUser.Field()
@@ -38,6 +39,7 @@ class Mutation(graphene.ObjectType):
     createChatroom = CreateChatroom.Field()
     createMessage = CreateMessage.Field()
     addStudentToClassroom = AddStudentToClassroom.Field()
+    removeStudentFromClassroom = RemoveStudentFromClassroom.Field()
 
 
 class Query(graphene.ObjectType):

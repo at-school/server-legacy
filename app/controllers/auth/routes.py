@@ -44,7 +44,7 @@ def signin():
         query = loginQuery(username)
         user = schema.execute(query, context_value={"accessLevel": 4})
         user = user.data.get("user")
-        if len(user) != 1:
+        if user and len(user) != 1:
             return bad_request("Incorrect username or password.")
         user = user[0]
         if User.checkPassword(user.get("password", None), password):

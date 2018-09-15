@@ -22,6 +22,7 @@ class CreateUser(graphene.Mutation):
             "email": u.email,
             "accessLevel": u.accessLevel,
             "avatar": u.avatar,
-            "studentClassroom": []
+            "studentClassroom": [],
+            "faceEncoding": ""
         })
         return UserSchema(**arguments, avatar=u.avatar)
