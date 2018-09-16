@@ -16,14 +16,14 @@ import os
 
 
 @bp.route("/camera/upload", methods=["POST"])
-@jwt_required
 def upload():
     try:
         data = request.get_json()
+         # get image data
         image_data = data["imageData"]
-        image_data = image_data[image_data.find(",")+1:]
+        image_data = image_data.split(",")[1]
         image_data = base64.b64decode(image_data)
-        filename = 'image.jpg'
+        filename = os.path.join(os.path.dirname(__file__), 'image.jpeg')
         with open(filename, 'wb') as f:
             f.write(image_data)
         # Load the uploaded image file
@@ -44,7 +44,6 @@ def upload():
                     known_face_encodings.append(
                         np.fromstring(u["faceEncoding"]))
                     users_have_encodings.append(u)
-
             # compare faces
             match_results = face_recognition.compare_faces(
                 known_face_encodings, unknown_face_encodings[0])
