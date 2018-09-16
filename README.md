@@ -1,5 +1,11 @@
 # Server for at-school written in Python Flask.
 
+### Features
+
+* Facial recognition
+* Basic structure of classes, messages.
+* Websocket for connection between server and client.
+
 ### Steps to get the server running
 
 * Activate virtual environemnt `source venv/bin/activate`
