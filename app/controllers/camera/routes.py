@@ -12,13 +12,58 @@ from flask_jwt_extended import jwt_required
 from app.database import db
 from bson.objectid import ObjectId
 from flask_jwt_extended import get_jwt_identity
+from datetime import datetime, timedelta
 import os
+import pymongo
+from calendar import day_name
 
+def isInSchedule(scheduleList):
+    if not scheduleList:
+        return False
+
+    latestSchedule = scheduleList[0]
+
+    # if the current time is before the latest shedule
+    if datetime.now() < latestSchedule["startTime"]:
+        return True
+
+def getLine(line):
+    day = datetime.now().weekday()
+    counter = 0
+    while True:
+        currentLine = db.schedule.find_one({"line": line, "day": day_name[(day + counter) % 7]})
+        if currentLine:
+            currentTime = datetime.now() + timedelta(days=counter)
+            startHour, startMinute, startSecond = map(int, currentLine["startTime"].split(":"))
+            finishHour, finishMinute, finishSecond = map(int, currentLine["endTime"].split(":"))
+            startTime = datetime(currentTime.year, currentTime.month, currentTime.day, startHour, startMinute, startSecond)
+            finishTime = datetime(currentTime.year, currentTime.month, currentTime.day, finishHour, finishMinute, finishSecond)
+            return {
+                "line": line,
+                "startTime": starTime,
+                "finishTime": finishTime
+            }
+
+        
+
+        counter += 1
+        
 
 @bp.route("/camera/upload", methods=["POST"])
 def upload():
     try:
         data = request.get_json()
+
+        # check if the current time is in the latest schedule details
+        latestLine = list(db.scheduleDetails.find({"line": data["line"], "classId": data["classId"]}).sort(
+            'startTime', pymongo.DESCENDING).limit(1))
+
+        # if the current schedule is not in the list, create new schedule
+        if not isInSchedule(latestLine):
+            # get the start time and end time of the line
+            print(getLine(data["line"]))
+
+
          # get image data
         image_data = data["imageData"]
         image_data = image_data.split(",")[1]

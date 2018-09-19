@@ -21,4 +21,5 @@ class RemoveClassroom(graphene.Mutation):
         if not arguments["_id"]:
             raise GraphQLError("Not the right query")
         db.classrooms.remove(ObjectId(arguments["_id"]))
+        db.users.update_many({"accessLevel": 1}, {'$pull': {'studentClassroom': arguments["_id"]}})
         return ClassroomSchema(**arguments)
