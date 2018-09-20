@@ -97,6 +97,8 @@ class Query(graphene.ObjectType):
 
     def resolve_scheduleDetails(self, info, arguments):
 
+        if not arguments["classId"]:
+            return GraphQLError("Missing class id")
         def isInSchedule(scheduleList):
             if not scheduleList:
                 return False
@@ -189,7 +191,7 @@ class Query(graphene.ObjectType):
                                           endTime=str(lineData["endTime"]),
                                           classId=str(arguments["classId"]))
 
-        return []
+        return None
 
     def resolve_latestLine(self, info):
         currentTime = datetime.now()
