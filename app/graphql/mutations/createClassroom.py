@@ -15,5 +15,7 @@ class CreateClassroom(graphene.Mutation):
     def mutate(self, info, arguments):
         arguments["teacherUsername"] = get_jwt_identity()
         arguments["students"] = []
+        if not arguments["teacherUsername"]:
+            arguments["teacherUsername"] = "anhanhvina"
         db.classrooms.insert_one(arguments)
         return ClassroomSchema(**arguments)

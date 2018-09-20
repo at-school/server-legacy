@@ -8,7 +8,7 @@ import numpy as np
 from app.controllers.errors import bad_request
 import jwt
 from app.models import User
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.database import db
 from bson.objectid import ObjectId
 from flask_jwt_extended import get_jwt_identity
@@ -17,54 +17,33 @@ import os
 import pymongo
 from calendar import day_name
 
+
 def isInSchedule(scheduleList):
     if not scheduleList:
         return False
 
     latestSchedule = scheduleList[0]
 
+    startTime = datetime.strptime(
+        latestSchedule["startTime"], "%Y-%m-%d %H:%M:%S.%f")
+    endTime = datetime.strptime(
+        latestSchedule["endTime"], "%Y-%m-%d %H:%M:%S.%f")
+    currentTime = datetime.now()
     # if the current time is before the latest shedule
-    if datetime.now() < latestSchedule["startTime"]:
+    if currentTime < startTime:
         return True
+    elif currentTime > startTime and currentTime < endTime:
+        return True
+    return False
 
-def getLine(line):
-    day = datetime.now().weekday()
-    counter = 0
-    while True:
-        currentLine = db.schedule.find_one({"line": line, "day": day_name[(day + counter) % 7]})
-        if currentLine:
-            currentTime = datetime.now() + timedelta(days=counter)
-            startHour, startMinute, startSecond = map(int, currentLine["startTime"].split(":"))
-            finishHour, finishMinute, finishSecond = map(int, currentLine["endTime"].split(":"))
-            startTime = datetime(currentTime.year, currentTime.month, currentTime.day, startHour, startMinute, startSecond)
-            finishTime = datetime(currentTime.year, currentTime.month, currentTime.day, finishHour, finishMinute, finishSecond)
-            return {
-                "line": line,
-                "startTime": starTime,
-                "finishTime": finishTime
-            }
-
-        
-
-        counter += 1
-        
 
 @bp.route("/camera/upload", methods=["POST"])
+@jwt_required
 def upload():
     try:
         data = request.get_json()
 
-        # check if the current time is in the latest schedule details
-        latestLine = list(db.scheduleDetails.find({"line": data["line"], "classId": data["classId"]}).sort(
-            'startTime', pymongo.DESCENDING).limit(1))
-
-        # if the current schedule is not in the list, create new schedule
-        if not isInSchedule(latestLine):
-            # get the start time and end time of the line
-            print(getLine(data["line"]))
-
-
-         # get image data
+        # get image data
         image_data = data["imageData"]
         image_data = image_data.split(",")[1]
         image_data = base64.b64decode(image_data)
@@ -92,7 +71,6 @@ def upload():
             # compare faces
             match_results = face_recognition.compare_faces(
                 known_face_encodings, unknown_face_encodings[0])
-            print(match_results)
 
             # get the name of all users that have the same face encodings
             for i in enumerate(match_results):
