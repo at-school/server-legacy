@@ -18,6 +18,7 @@ from app.graphql.schemas.schedule import ScheduleSchema
 from app.graphql.schemas.user import UserSchema
 from app.graphql.schemas.scheduleDetails import ScheduleDetailsSchema
 from app.graphql.schemas.latestLine import LatestLineSchema
+from app.graphql.schemas.rollmarkingActivities import RollMarkingActivitiesSchema
 from app.models import User
 
 from app.graphql.inputs.schedule import ScheduleInput
@@ -27,6 +28,7 @@ from app.graphql.inputs.classroom import ClassroomInput
 from app.graphql.inputs.message import MessageInput
 from app.graphql.inputs.chatroom import ChatroomInput
 from app.graphql.inputs.scheduleDetails import ScheduleDetailsInput
+from app.graphql.inputs.rollmarkingActivities import RollMarkingActivitiesInput
 
 from app.graphql.mutations.createUser import CreateUser
 from app.graphql.mutations.createClassroom import CreateClassroom
@@ -62,6 +64,8 @@ class Query(graphene.ObjectType):
     scheduleDetails = graphene.Field(
         ScheduleDetailsSchema, arguments=ScheduleDetailsInput(required=True))
     latestLine = graphene.Field(LatestLineSchema)
+    rollMarkingActivites = graphene.List(
+        RollMarkingActivitiesSchema, arguments=RollMarkingActivitiesInput(required=True))
 
     def resolve_user(self, info, arguments):
         users = None
@@ -99,6 +103,7 @@ class Query(graphene.ObjectType):
 
         if not arguments["classId"]:
             return GraphQLError("Missing class id")
+
         def isInSchedule(scheduleList):
             if not scheduleList:
                 return False
@@ -142,7 +147,6 @@ class Query(graphene.ObjectType):
                             "endTime": finishTime
                         }
 
-
                 counter += 1
                 if (counter > 8):
                     break
@@ -155,8 +159,8 @@ class Query(graphene.ObjectType):
             # do something here
             latestLine = latestLine[0]
             return ScheduleDetailsSchema(_id=str(latestLine["_id"]),
-                                          line=str(arguments["line"]),
-                                          startTime=str(
+                                         line=str(arguments["line"]),
+                                         startTime=str(
                 latestLine["startTime"]),
                 endTime=str(latestLine["endTime"]),
                 classId=str(arguments["classId"]))
@@ -186,10 +190,10 @@ class Query(graphene.ObjectType):
                 scheduleToSave).inserted_id
 
             return ScheduleDetailsSchema(_id=str(inserted_id),
-                                          line=str(arguments["line"]),
-                                          startTime=str(lineData["startTime"]),
-                                          endTime=str(lineData["endTime"]),
-                                          classId=str(arguments["classId"]))
+                                         line=str(arguments["line"]),
+                                         startTime=str(lineData["startTime"]),
+                                         endTime=str(lineData["endTime"]),
+                                         classId=str(arguments["classId"]))
 
         return None
 
@@ -231,6 +235,36 @@ class Query(graphene.ObjectType):
                 counter += 1
                 continue
             else:
+
+                # cehck if right now is break
+                for i in range(0, len(schedule) - 1):
+                    s1EndTime = schedule[i]["endTime"]
+                    s2StartTime = schedule[i + 1]["startTime"]
+
+                    endHour, endMinute, endSecond = map(
+                        int, s1EndTime.split(":"))
+
+                    startHour, startMinute, startSecond = map(
+                        int, s2StartTime.split(":"))
+
+                    startTime = datetime(currentTime.year, currentTime.month,
+                                         currentTime.day, startHour, startMinute, startSecond)
+                    endTime = datetime(currentTime.year, currentTime.month,
+                                       currentTime.day, endHour, endMinute, endSecond)
+                    if currentTime <= startTime and currentTime >= endTime:
+                        s = schedule[i + 1]
+                        startHour, startMinute, startSecond = map(
+                            int, s["startTime"].split(":"))
+                        endHour, endMinute, endSecond = map(
+                            int, s["endTime"].split(":"))
+
+                        startTime = datetime(currentTime.year, currentTime.month,
+                                             currentTime.day, startHour, startMinute, startSecond)
+
+                        endTime = datetime(currentTime.year, currentTime.month,
+                                           currentTime.day, endHour, endMinute, endSecond)
+                        return LatestLineSchema(_id=str(s["_id"]), line=s["line"], startTime=str(startTime), endTime=str(endTime))
+
                 for s in schedule:
                     startHour, startMinute, startSecond = map(
                         int, s["startTime"].split(":"))
@@ -246,6 +280,12 @@ class Query(graphene.ObjectType):
                         return LatestLineSchema(_id=str(s["_id"]), line=s["line"], startTime=str(startTime), endTime=str(endTime))
 
             counter += 1
+
+    def resolve_rollMarkingActivites(self, info, arguments):
+        activities = list(db.activities.find(
+            {"userId": arguments["userId"], "activityType": 1}))
+
+        return map(lambda activity: RollMarkingActivitiesSchema(**activity), activities)
 
 
 schema = graphene.Schema(query=Query, mutation=Mutation)

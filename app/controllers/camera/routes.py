@@ -43,6 +43,14 @@ def upload():
     try:
         data = request.get_json()
 
+        # the student list that hasn't been marked
+        studentList = data["studentList"]
+        print(studentList)
+        if not studentList:
+            return jsonify({"studentList": []})
+
+        scheduleId = data["scheduleId"]
+
         # get image data
         image_data = data["imageData"]
         image_data = image_data.split(",")[1]
@@ -57,7 +65,8 @@ def upload():
         unknown_face_encodings = face_recognition.face_encodings(img)
         people_found = []
         users = list(db.users.find(
-            {}, {"faceEncoding": 1, "firstname": 1, "lastname": 1}))
+            {"$or": list(map(lambda studentId: {"_id": ObjectId(studentId)}, studentList))}, {"faceEncoding": 1}))
+        print(users)
         if len(unknown_face_encodings) > 0:
 
             # get only those users have face encoding
@@ -76,10 +85,14 @@ def upload():
             for i in enumerate(match_results):
                 if (i[1]):
                     user = users_have_encodings[i[0]]
-                    people_found.append(
-                        {"Id": str(user["_id"])})
+                    people_found.append(str(user["_id"]))
 
-        return jsonify({"success": True, "peopleFound": people_found})
+        print(people_found)
+        if (people_found):
+            for i in people_found:
+                db.scheduleDetails.update({"_id": ObjectId(scheduleId), "students._id": i}, { "$set": { "students.$.inClass": True } })
+
+        return jsonify({"studentList": people_found})
     except KeyError:
         return bad_request("Wrong arguments.")
     return bad_request("There is an internal server error. Please contact the IT support.")

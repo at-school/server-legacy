@@ -5,6 +5,7 @@ from app.graphql.inputs.user import UserInput
 from app.models import User
 from app.graphql.schemas.user import UserSchema
 
+
 class CreateUser(graphene.Mutation):
     class Arguments:
         arguments = UserInput(required=True)
@@ -23,6 +24,7 @@ class CreateUser(graphene.Mutation):
             "accessLevel": u.accessLevel,
             "avatar": u.avatar,
             "studentClassroom": [],
-            "faceEncoding": ""
+            "faceEncoding": "",
+            "activities": []
         })
         return UserSchema(**arguments, avatar=u.avatar)
