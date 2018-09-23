@@ -282,9 +282,9 @@ class Query(graphene.ObjectType):
             counter += 1
 
     def resolve_rollMarkingActivites(self, info, arguments):
-        activities = list(db.activities.find(
-            {"userId": arguments["userId"], "activityType": 1}))
-
+        arguments["activityType"] = 1
+        activities = list(db.activities.find(arguments))
+        activities.reverse()
         return map(lambda activity: RollMarkingActivitiesSchema(**activity), activities)
 
 

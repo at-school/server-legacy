@@ -18,25 +18,6 @@ import pymongo
 from calendar import day_name
 
 
-def isInSchedule(scheduleList):
-    if not scheduleList:
-        return False
-
-    latestSchedule = scheduleList[0]
-
-    startTime = datetime.strptime(
-        latestSchedule["startTime"], "%Y-%m-%d %H:%M:%S.%f")
-    endTime = datetime.strptime(
-        latestSchedule["endTime"], "%Y-%m-%d %H:%M:%S.%f")
-    currentTime = datetime.now()
-    # if the current time is before the latest shedule
-    if currentTime < startTime:
-        return True
-    elif currentTime > startTime and currentTime < endTime:
-        return True
-    return False
-
-
 @bp.route("/camera/upload", methods=["POST"])
 @jwt_required
 def upload():
@@ -50,6 +31,7 @@ def upload():
             return jsonify({"studentList": []})
 
         scheduleId = data["scheduleId"]
+        userId = data["userId"]
 
         # get image data
         image_data = data["imageData"]
@@ -66,7 +48,6 @@ def upload():
         people_found = []
         users = list(db.users.find(
             {"$or": list(map(lambda studentId: {"_id": ObjectId(studentId)}, studentList))}, {"faceEncoding": 1}))
-        print(users)
         if len(unknown_face_encodings) > 0:
 
             # get only those users have face encoding
@@ -89,10 +70,33 @@ def upload():
 
         print(people_found)
         if (people_found):
+            studentUpdated = []
             for i in people_found:
-                db.scheduleDetails.update({"_id": ObjectId(scheduleId), "students._id": i}, { "$set": { "students.$.inClass": True } })
+                result = db.scheduleDetails.update({"_id": ObjectId(scheduleId), "students._id": i, "students.inClass": False}, { "$set": { "students.$.inClass": True } })
+                if (result["nModified"] > 0):
+                    studentUpdated.append(i)
+            now = datetime.now()
+            if (studentUpdated):
+                activity =  {
+                    "activityType": 1, 
+                    "userId": userId, 
+                    "students": studentUpdated, 
+                    "timestamp": now
+                }
+                insertedId = db.activities.insert_one(activity).inserted_id
+                activity["Id"] = str(insertedId)
+                del activity["_id"]
+                activity["timestamp"] = str(now).split(".")[0]
+                return jsonify(
+                    {
+                        "studentList": studentUpdated, 
+                        "activity": activity
+                    }
+                )
+            
 
-        return jsonify({"studentList": people_found})
+
+        return jsonify({"studentList": []})
     except KeyError:
         return bad_request("Wrong arguments.")
     return bad_request("There is an internal server error. Please contact the IT support.")
