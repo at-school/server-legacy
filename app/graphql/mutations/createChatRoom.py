@@ -34,7 +34,7 @@ class CreateChatroom(graphene.Mutation):
         inserted_id = db.chatrooms.insert_one({
             "users": [firstId, secondId],
             "timestamp": timestamp,
-            "name": username
+            "name": username,
         }).inserted_id
 
         return ChatroomSchema(_id=inserted_id, timestamp=timestamp, name=username)

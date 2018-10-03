@@ -24,7 +24,7 @@ class ChatroomSchema(graphene.ObjectType):
 
         # get the user schema
         users = map(lambda id: db.users.find_one(
-            {"_id": ObjectId(id)}), userIds)
+            {"_id": ObjectId(id)}, {"activities": 0}), userIds)
 
         return map(lambda userInfo: UserSchema(**userInfo), users)
 

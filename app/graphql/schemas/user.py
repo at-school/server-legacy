@@ -3,6 +3,7 @@ import pymongo
 from bson.objectid import ObjectId
 
 from app.database import db
+from app.graphql.schemas.skill import SkillSchema
 
 
 class UserSchema(graphene.ObjectType):
@@ -18,6 +19,7 @@ class UserSchema(graphene.ObjectType):
     chatrooms = graphene.List(lambda: ChatroomSchema)
     latestChatroom = graphene.List(lambda: ChatroomSchema)
     studentClassroom = graphene.List(lambda: ClassroomSchema)
+    skills = graphene.List(SkillSchema)
     _id = graphene.ID()
 
     def resolve_classrooms(self, info):
@@ -48,7 +50,11 @@ class UserSchema(graphene.ObjectType):
 
         return map(lambda room: ChatroomSchema(_id=room["_id"], name=room["name"]), returnedChatrooms)
 
+    def resolve_skills(self, info):
+        skills = list(db.skills.find({"userId": str(self._id)}))
+
+        return [SkillSchema(**skill) for skill in skills]
+
 
 from app.graphql.schemas.chatroom import ChatroomSchema
 from app.graphql.schemas.classroom import ClassroomSchema
-

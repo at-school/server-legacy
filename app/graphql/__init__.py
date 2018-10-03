@@ -38,6 +38,7 @@ from app.graphql.mutations.createChatRoom import CreateChatroom
 from app.graphql.mutations.createMessage import CreateMessage
 from app.graphql.mutations.addStudentToClassroom import AddStudentToClassroom
 from app.graphql.mutations.removeStudentFromClassroom import RemoveStudentFromClassroom
+from app.graphql.mutations.createSkill import CreateSkill
 
 
 class Mutation(graphene.ObjectType):
@@ -49,6 +50,7 @@ class Mutation(graphene.ObjectType):
     createMessage = CreateMessage.Field()
     addStudentToClassroom = AddStudentToClassroom.Field()
     removeStudentFromClassroom = RemoveStudentFromClassroom.Field()
+    createSkill = CreateSkill.Field()
 
 
 class Query(graphene.ObjectType):
@@ -70,9 +72,11 @@ class Query(graphene.ObjectType):
     def resolve_user(self, info, arguments):
         users = None
         if arguments.get("_id", None):
-            users = list(db.users.find({"_id": ObjectId(arguments["_id"])}))
+            users = list(db.users.find({"_id": ObjectId(arguments["_id"])}, {"activities": 0}))
         else:
-            users = list(db.users.find(arguments))
+            users = list(db.users.find(arguments, {"activities": 0}))
+
+        print(users)
         return map(lambda i: UserSchema(**i), users)
 
     def resolve_classroom(self, info, arguments):
