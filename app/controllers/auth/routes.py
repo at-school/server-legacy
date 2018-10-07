@@ -120,6 +120,8 @@ def register():
         lastname = data["lastname"]
         email = data["email"]
         accessLevel = data["accessLevel"]
+        dob = data["dob"]
+        gender = data["gender"]
 
         if accessLevel not in ["1", "2", 1, 2]:
             return bad_request("Type is not correct.")
@@ -133,7 +135,8 @@ def register():
             return bad_request("User already exists.")
 
         schema.execute(registerQuery(username=username, firstname=firstname, lastname=lastname,
-                                     email=email, password=password, accessLevel=int(accessLevel)))
+                                     email=email, password=password, accessLevel=int(accessLevel), 
+                                     gender=gender, dob=dob))
         return jsonify({})
 
     except KeyError:

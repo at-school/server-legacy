@@ -8,3 +8,5 @@ class UserInput(graphene.InputObjectType):
     password = graphene.String()
     accessLevel = graphene.Int()
     email = graphene.String()
+    dob = graphene.String()
+    gender = graphene.String()

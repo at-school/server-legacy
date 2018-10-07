@@ -5,7 +5,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 class User():
 
-    def __init__(self, username, firstname, lastname, email, accessLevel, **kwargs):
+    def __init__(self, username, firstname, lastname, email, accessLevel, gender, dob, **kwargs):
         self.username = username
         self.firstname = firstname
         self.lastname = lastname
@@ -14,6 +14,8 @@ class User():
         self.avatar = 'https://www.gravatar.com/avatar/{}?d=identicon&s=256'.format(
             md5(self.username.lower().encode('utf-8')).hexdigest())
         self.password = ""
+        self.gender = gender,
+        self.dob = dob
 
     def get_default_avatar(self, size):
         digest = md5(self.username.lower().encode('utf-8')).hexdigest()

@@ -26,8 +26,9 @@ class CreateUser(graphene.Mutation):
             "email": u.email,
             "accessLevel": u.accessLevel,
             "avatar": u.avatar,
+            "gender": u.gender,
+            "dob": u.dob,
             "studentClassroom": [],
-            "faceEncoding": "",
             "activities": []
         }).inserted_id)
         timestamp = datetime.utcnow()
