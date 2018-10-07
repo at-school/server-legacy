@@ -10,6 +10,7 @@ from app.controllers.errors import bad_request
 from app.decorators import teacher_required, admin_required
 from app.models import User
 from app.graphql import schema
+import os
 
 
 """
@@ -27,7 +28,7 @@ Returns upon success:
 
 @jwt.user_claims_loader
 def add_claims_to_access_token(user):
-    return {'role': int(user.get("accessLevel"))}
+    return {'role': int(user.get("accessLevel")), "Id": str(user.get("_id"))}
 
 
 @jwt.user_identity_loader
@@ -49,14 +50,15 @@ def signin():
         user = user[0]
         if User.checkPassword(user.get("password", None), password):
             accessToken = create_access_token(identity=user)
-            print(accessToken)
+            print(os.path.abspath(__file__))
             return jsonify({
                 "token": accessToken,
                 "username": user.get("username"),
                 "userId": str(user.get("Id")),
                 "avatarUrl": user.get("avatar"),
                 "userType": user.get("accessLevel"),
-                "fullname": user.get("firstname") + " " + user.get("lastname")
+                "fullname": user.get("firstname") + " " + user.get("lastname"),
+                "accessLevel": user.get("accessLevel")
             })
     except KeyError:
         return bad_request("Wrong arguments.")
@@ -132,7 +134,6 @@ def register():
 
         schema.execute(registerQuery(username=username, firstname=firstname, lastname=lastname,
                                      email=email, password=password, accessLevel=int(accessLevel)))
-
         return jsonify({})
 
     except KeyError:

@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import os
 import graphene
 import pymongo
 from bson.objectid import ObjectId
@@ -39,6 +40,7 @@ from app.graphql.mutations.createMessage import CreateMessage
 from app.graphql.mutations.addStudentToClassroom import AddStudentToClassroom
 from app.graphql.mutations.removeStudentFromClassroom import RemoveStudentFromClassroom
 from app.graphql.mutations.createSkill import CreateSkill
+from app.graphql.mutations.removeSkill import RemoveSkill
 
 
 class Mutation(graphene.ObjectType):
@@ -51,6 +53,7 @@ class Mutation(graphene.ObjectType):
     addStudentToClassroom = AddStudentToClassroom.Field()
     removeStudentFromClassroom = RemoveStudentFromClassroom.Field()
     createSkill = CreateSkill.Field()
+    removeSkill = RemoveSkill.Field()
 
 
 class Query(graphene.ObjectType):
@@ -82,8 +85,16 @@ class Query(graphene.ObjectType):
     def resolve_classroom(self, info, arguments):
         if arguments.get("_id", None):
             arguments["_id"] = ObjectId(arguments["_id"])
-        classrooms = list(db.classrooms.find(arguments))
-        return map(lambda i: ClassroomSchema(**i), classrooms)
+        classrooms = list(db.classrooms.find(arguments, {"avatar": 0}))
+
+        classrooms1 = []
+        for classroom in classrooms:
+            classroom_id = str(classroom["_id"])
+            with open(os.path.join(os.getcwd(), "class_images", str(classroom_id) + ".txt"), 'r') as f:
+                classroom["avatar"] = f.read()
+                classrooms1.append(classroom)
+                
+        return map(lambda i: ClassroomSchema(**i), classrooms1)
 
     def resolve_chatroom(self, info, arguments):
         chatrooms = list(db.chatrooms.find(

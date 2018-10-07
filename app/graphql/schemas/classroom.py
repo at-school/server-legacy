@@ -16,7 +16,6 @@ class ClassroomSchema(graphene.ObjectType):
     def resolve_students(self, info):
         classroomData = db.classrooms.find_one({"_id": ObjectId(self._id)})
         studentList = classroomData["students"]
-        print(studentList)
         studentList = map(lambda student: db.users.find_one(
             {"_id": ObjectId(student)}),  studentList)
         return map(lambda student: UserSchema(**student), studentList)

@@ -1,3 +1,4 @@
+import os
 import graphene
 import pymongo
 from bson.objectid import ObjectId
@@ -7,6 +8,7 @@ from app.graphql.schemas.skill import SkillSchema
 
 
 class UserSchema(graphene.ObjectType):
+    _id = graphene.ID()
     username = graphene.String()
     firstname = graphene.String()
     lastname = graphene.String()
@@ -14,18 +16,24 @@ class UserSchema(graphene.ObjectType):
     accessLevel = graphene.Int()
     email = graphene.String()
     avatar = graphene.String()
-    faceEncoding = graphene.String()
     classrooms = graphene.List(lambda: ClassroomSchema)
     chatrooms = graphene.List(lambda: ChatroomSchema)
     latestChatroom = graphene.List(lambda: ChatroomSchema)
     studentClassroom = graphene.List(lambda: ClassroomSchema)
     skills = graphene.List(SkillSchema)
-    _id = graphene.ID()
+    bio = graphene.String()
 
     def resolve_classrooms(self, info):
         classrooms = list(db.classrooms.find(
             {"teacherUsername": self.username}))
-        return map(lambda i: ClassroomSchema(**i), classrooms)
+
+        classrooms1 = []
+        for classroom in classrooms:
+            classroom_id = str(classroom["_id"])
+            with open(os.path.join(os.getcwd(), "class_images", str(classroom_id) + ".txt"), 'r') as f:
+                classroom["avatar"] = f.read()
+                classrooms1.append(classroom)
+        return map(lambda i: ClassroomSchema(**i), classrooms1)
 
     def resolve_chatrooms(self, info):
         chatrooms = list(db.chatrooms.find({}).sort(

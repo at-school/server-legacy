@@ -1,21 +1,21 @@
-from flask import request, jsonify, current_app, redirect, url_for
-import os
-from app.controllers.camera import bp
 import base64
-import face_recognition
-from PIL import Image
-import numpy as np
-from app.controllers.errors import bad_request
-import jwt
-from app.models import User
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from app.database import db
-from bson.objectid import ObjectId
-from flask_jwt_extended import get_jwt_identity
-from datetime import datetime, timedelta
 import os
-import pymongo
 from calendar import day_name
+from datetime import datetime, timedelta
+
+import face_recognition
+import jwt
+import numpy as np
+import pymongo
+from bson.objectid import ObjectId
+from flask import current_app, jsonify, redirect, request, url_for
+from flask_jwt_extended import get_jwt_identity, jwt_required
+from PIL import Image
+
+from app.controllers.camera import bp
+from app.controllers.errors import bad_request
+from app.database import db
+from app.models import User
 
 
 @bp.route("/camera/upload", methods=["POST"])
@@ -26,7 +26,6 @@ def upload():
 
         # the student list that hasn't been marked
         studentList = data["studentList"]
-        print(studentList)
         if not studentList:
             return jsonify({"studentList": []})
 
@@ -46,41 +45,42 @@ def upload():
         # Get face encodings for any faces in the uploaded image
         unknown_face_encodings = face_recognition.face_encodings(img)
         people_found = []
-        users = list(db.users.find(
-            {"$or": list(map(lambda studentId: {"_id": ObjectId(studentId)}, studentList))}, {"faceEncoding": 1}))
+
         if len(unknown_face_encodings) > 0:
 
             # get only those users have face encoding
-            known_face_encodings = []
             users_have_encodings = []
-            for u in users:
-                if u.get("faceEncoding", None):
-                    known_face_encodings.append(
-                        np.fromstring(u["faceEncoding"]))
-                    users_have_encodings.append(u)
+            for student in studentList:
+                try:
+                    student_encoding = np.loadtxt(os.path.join(os.path.dirname(
+                        __file__), "encodings", student + ".txt"))
+                    users_have_encodings.append(
+                        {"student": student, "encoding": student_encoding})
+                except OSError:
+                    pass
             # compare faces
             match_results = face_recognition.compare_faces(
-                known_face_encodings, unknown_face_encodings[0])
+                [student["encoding"] for student in users_have_encodings], unknown_face_encodings[0])
 
             # get the name of all users that have the same face encodings
-            for i in enumerate(match_results):
-                if (i[1]):
-                    user = users_have_encodings[i[0]]
-                    people_found.append(str(user["_id"]))
+            for index, result in enumerate(match_results):
+                if (result):
+                    user = users_have_encodings[index]
+                    people_found.append(user["student"])
 
-        print(people_found)
         if (people_found):
             studentUpdated = []
             for i in people_found:
-                result = db.scheduleDetails.update({"_id": ObjectId(scheduleId), "students._id": i, "students.inClass": False}, { "$set": { "students.$.inClass": True } })
+                result = db.scheduleDetails.update({"_id": ObjectId(
+                    scheduleId), "students._id": i, "students.inClass": False}, {"$set": {"students.$.inClass": True}})
                 if (result["nModified"] > 0):
                     studentUpdated.append(i)
             now = datetime.now()
             if (studentUpdated):
-                activity =  {
-                    "activityType": 1, 
-                    "userId": userId, 
-                    "students": studentUpdated, 
+                activity = {
+                    "activityType": 1,
+                    "userId": userId,
+                    "students": studentUpdated,
                     "timestamp": now
                 }
                 insertedId = db.activities.insert_one(activity).inserted_id
@@ -89,12 +89,10 @@ def upload():
                 activity["timestamp"] = str(now).split(".")[0]
                 return jsonify(
                     {
-                        "studentList": studentUpdated, 
+                        "studentList": studentUpdated,
                         "activity": activity
                     }
                 )
-            
-
 
         return jsonify({"studentList": []})
     except KeyError:
@@ -107,22 +105,28 @@ def upload():
 def save_image():
     try:
         data = request.get_json()
-
-        # get image data
-        image_data = data["imageData"]
-        image_data = base64.b64decode(image_data)
-        filename = os.path.join(os.path.dirname(__file__), 'image.jpg')
+        filename = os.path.join(os.path.dirname(
+                __file__), 'image.jpeg')
         with open(filename, 'wb') as f:
+            # get image data
+            image_data = data["imageData"]
+            image_data = base64.b64decode(image_data)
             f.write(image_data)
+
+        username = get_jwt_identity()
+        user = db.users.find_one({"username": username}, {"_id": 1})
+        userId = str(user["_id"])
+
         img = face_recognition.load_image_file(filename)
         face_encodings = face_recognition.face_encodings(img)
         if len(face_encodings) != 1:
+            print(face_encodings)
+            os.remove(filename)
             return bad_request("There is no face in the photo.")
 
-        # put face encoding of the user into the database here
-        encoding_to_save = face_encodings[0].tostring()
-        db.users.update_one({'username': get_jwt_identity()}, {
-                            "$set": {"faceEncoding": encoding_to_save}}, upsert=False)
+        np.savetxt(os.path.join(os.path.dirname(
+            __file__), "encodings", userId + ".txt"), face_encodings)
+        os.remove(filename)
 
         return jsonify({"success": True})
     except KeyError:

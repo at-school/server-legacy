@@ -6,6 +6,8 @@ from app.controllers.users import bp
 from app.database import db
 from app.decorators import teacher_required
 
+from bson.objectid import ObjectId
+
 
 @jwt_required
 @bp.route("/user/search", methods=["POST"])
@@ -36,6 +38,23 @@ def searchStudent():
             user["_id"]), "name": user["firstname"] + " " + user["lastname"], "avatar": user["avatar"]}, users))
         print(users)
         return jsonify({"data": users})
+    except KeyError:
+        return bad_request("Wrong arguments.")
+    return bad_request("There is an internal server error. Please contact the IT support.")
+
+
+@bp.route("/user/edit/bio", methods=["POST"])
+@jwt_required
+def editBio():
+    try:
+        data = request.get_json()
+        userId = data["userId"]
+        bio = data["bio"]
+
+        db.users.update_one({"_id": ObjectId(userId)}, {"$set": {"bio": bio}})
+
+        return jsonify({"bio": bio})
+
     except KeyError:
         return bad_request("Wrong arguments.")
     return bad_request("There is an internal server error. Please contact the IT support.")

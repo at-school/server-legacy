@@ -1,3 +1,4 @@
+import os
 import graphene
 from bson.objectid import ObjectId
 from graphql import GraphQLError
@@ -21,5 +22,6 @@ class RemoveClassroom(graphene.Mutation):
         if not arguments["_id"]:
             raise GraphQLError("Not the right query")
         db.classrooms.remove(ObjectId(arguments["_id"]))
+        os.remove(os.path.join(os.getcwd(), "class_images", arguments["_id"] + ".txt"))
         db.users.update_many({"accessLevel": 1}, {'$pull': {'studentClassroom': arguments["_id"]}})
         return ClassroomSchema(**arguments)
