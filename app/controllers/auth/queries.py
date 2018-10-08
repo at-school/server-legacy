@@ -17,19 +17,19 @@ def loginQuery(username):
     ''' % username
 
 
-def registerQuery(username, firstname, lastname, email, password, accessLevel, gender, dob):
+def registerQuery(username, firstname, lastname, email, password, accessLevel, gender, dob, phone):
     """
     Arguments:
       - userInfo: a dictionary contains user info: username, 
-                  email, firstname, lastname, accessLevel, password, dob, gender
+                  email, firstname, lastname, accessLevel, password, dob, gender, phone
     """
 
     return '''
         mutation addUser {
             createUser (arguments: { username: "%s", firstname: "%s",
                                      lastname: "%s", password: "%s",
-                                     accessLevel: %i, email: "%s", gender: "%s", dob: "%s" } ) {
+                                     accessLevel: %i, email: "%s", gender: "%s", dob: "%s", phone: "%s" } ) {
                 username
             }
         }
-    ''' % (username, firstname, lastname, password, accessLevel, email, gender, dob)
+    ''' % (username, firstname, lastname, password, accessLevel, email, gender, dob, phone)

@@ -6,11 +6,13 @@ import pymongo
 
 class ChatroomSchema(graphene.ObjectType):
     _id = graphene.ID()
+    name = graphene.String()
     users = graphene.List(lambda: UserSchema)
     messages = graphene.List(lambda: MessageSchema)
     timestamp = graphene.DateTime()
     name = graphene.String()
     latestMessage = graphene.List(lambda: MessageSchema)
+    
 
     def resolve_messages(self, info):
         messages = list(db.messages.find({"chatroomId": str(self._id)}))

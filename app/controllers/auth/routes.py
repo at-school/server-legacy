@@ -11,6 +11,10 @@ from app.decorators import teacher_required, admin_required
 from app.models import User
 from app.graphql import schema
 import os
+from app.database import db
+from datetime import datetime
+from hashlib import md5
+
 
 
 """
@@ -33,7 +37,7 @@ def add_claims_to_access_token(user):
 
 @jwt.user_identity_loader
 def user_identity_lookup(user):
-    return user.get("username", None)
+    return str(user.get("Id", None))
 
 
 @bp.route("/auth/signin", methods=["POST"])
@@ -113,6 +117,7 @@ Arguments:
 def register():
     try:
         data = request.get_json()
+        print(data)
         username = data["username"]
         password = data["password"]
         password1 = data["password1"]
@@ -122,6 +127,7 @@ def register():
         accessLevel = data["accessLevel"]
         dob = data["dob"]
         gender = data["gender"]
+        data["phone"] = data["prefix"] + data["phone"]
 
         if accessLevel not in ["1", "2", 1, 2]:
             return bad_request("Type is not correct.")
@@ -134,14 +140,47 @@ def register():
         if len(user.data.get("user")) != 0:
             return bad_request("User already exists.")
 
-        schema.execute(registerQuery(username=username, firstname=firstname, lastname=lastname,
-                                     email=email, password=password, accessLevel=int(accessLevel), 
-                                     gender=gender, dob=dob))
+        u = User(**data)
+        u.setPassword(data["password"])
+        inserted_id = str(db.users.insert_one({
+            "username": u.username,
+            "password": u.password,
+            "firstname": u.firstname,
+            "lastname": u.lastname,
+            "email": u.email,
+            "accessLevel": u.accessLevel,
+            "avatar": u.avatar,
+            "gender": data["gender"],
+            "dob": u.dob,
+            "studentClassroom": [],
+            "activities": [],
+            "phone": data["phone"],
+
+        }).inserted_id)
+        timestamp = datetime.utcnow()
+        inserted_id = str(db.chatrooms.insert_one({
+            "users": [inserted_id],
+            "timestamp": timestamp,
+            "name": "Team @ School"
+        }).inserted_id)
+        avatar_digest = md5(
+            "phamduyanh249@live.com".lower().encode('utf-8')).hexdigest()
+        db.messages.insert_one(
+            {
+                "messageContent": "Hello, welcome to @ School!",
+                "chatroomId": inserted_id,
+                "senderId": "",
+                "timestamp": timestamp,
+                "senderAvatar": 'https://www.gravatar.com/avatar/{}?d=identicon&s={}'.format(
+                    avatar_digest, 512)
+            }
+        )
+
         return jsonify({})
 
     except KeyError:
         return bad_request("Wrong arguments.")
-    # return bad_request("There is an internal server error. Please contact the IT support.")
+    return bad_request("There is an internal server error. Please contact the IT support.")
 
 
 """

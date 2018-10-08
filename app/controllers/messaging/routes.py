@@ -1,4 +1,5 @@
 import jwt
+from bson.objectid import ObjectId
 from flask import current_app, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_socketio import emit, join_room, leave_room, send
@@ -17,21 +18,17 @@ def join(data):
     A status message is broadcast to all people in the room."""
 
     # get the user id
-    username = get_jwt_identity()
+    userId = get_jwt_identity()
 
-    if not username:
+    if not userId:
         return False
 
-    user = db.users.find_one({"username": username})
-    userId = user["_id"]
+    user = db.users.find_one({"_id": ObjectId(userId)})
 
-    if not user:
-        return False
 
     message = data.get("messageContent", None)
 
     room = data['chatroomId']
-    print(data)
     join_room(room)
 
     if message:
@@ -43,7 +40,7 @@ def join(data):
             "Id": data["Id"],
             "messageContent": data["messageContent"],
             "senderAvatar": data["senderAvatar"],
-            "senderUsername": username,
+            "senderUsername": user["username"],
             "chatroomId": data["chatroomId"],
             "senderId": str(userId),
             "__typename": data["__typename"]

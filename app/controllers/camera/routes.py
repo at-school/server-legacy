@@ -106,16 +106,14 @@ def save_image():
     try:
         data = request.get_json()
         filename = os.path.join(os.path.dirname(
-                __file__), 'image.jpeg')
+            __file__), 'image.jpeg')
         with open(filename, 'wb') as f:
             # get image data
             image_data = data["imageData"]
             image_data = base64.b64decode(image_data)
             f.write(image_data)
 
-        username = get_jwt_identity()
-        user = db.users.find_one({"username": username}, {"_id": 1})
-        userId = str(user["_id"])
+        userId = get_jwt_identity()
 
         img = face_recognition.load_image_file(filename)
         face_encodings = face_recognition.face_encodings(img)

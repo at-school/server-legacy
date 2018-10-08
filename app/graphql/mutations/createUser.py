@@ -29,7 +29,9 @@ class CreateUser(graphene.Mutation):
             "gender": u.gender,
             "dob": u.dob,
             "studentClassroom": [],
-            "activities": []
+            "activities": [],
+            "phone": arguments["phone"],
+            
         }).inserted_id)
         timestamp = datetime.utcnow()
         inserted_id = str(db.chatrooms.insert_one({

@@ -5,7 +5,8 @@ from flask_cors import CORS
 from flask_graphql import GraphQLView
 from flask_jwt_extended import (
     JWTManager,
-    jwt_required
+    jwt_required,
+    get_jwt_identity
 )
 from flask_socketio import SocketIO
 
@@ -21,7 +22,7 @@ socketio = SocketIO()
 def graphql_view():
     view = GraphQLView.as_view(
         'graphql', schema=schema, graphiql=True, context={"user": ""})
-    return view
+    return jwt_required(view)
 
 
 def create_app(config_class=Config):

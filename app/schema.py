@@ -147,9 +147,8 @@ class CreateMessage(graphene.Mutation):
         timestamp = datetime.utcnow()
 
         # get the sender avatar and id
-        senderUsername = get_jwt_identity()
-        sender = db.users.find_one({"username": senderUsername})
-        senderId = str(sender["_id"])
+        senderId = get_jwt_identity()
+        sender = db.users.find_one({"_id": ObjectId(senderId)})
         senderAvatar = sender["avatar"]
 
         inserted_id = db.messages.insert_one(
@@ -219,9 +218,7 @@ class CreateChatroom(graphene.Mutation):
         secondId = arguments.get("secondId", None)
 
         # get the ID of the user
-        username = get_jwt_identity()
-        user = db.users.find_one({"username": username})
-        userIdentity = str(user["_id"])
+        userIdentity = get_jwt_identity()
 
         if not firstId:
             firstId = userIdentity
@@ -233,7 +230,7 @@ class CreateChatroom(graphene.Mutation):
         inserted_id = db.chatrooms.insert_one({
             "users": [firstId, secondId],
             "timestamp": timestamp,
-            "name": username
+            "name": "username"
         }).inserted_id
 
         return ChatroomSchema(_id=inserted_id, timestamp=timestamp, name=username)
@@ -335,7 +332,7 @@ class AddStudentInClassroom(graphene.Mutation):
         db.classrooms.update({'_id': ObjectId(arguments["classId"])}, {
                              '$push': {'students': arguments["studentId"]}})
         db.users.update({'_id': ObjectId(arguments["studentId"])}, {
-                             '$push': {'studentClassroom': arguments["classId"]}})
+            '$push': {'studentClassroom': arguments["classId"]}})
         user = db.users.find_one({"_id": ObjectId(arguments["studentId"])})
         return UserSchema(**user)
 

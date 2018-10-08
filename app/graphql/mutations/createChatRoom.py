@@ -2,6 +2,7 @@ from datetime import datetime
 
 import graphene
 from flask_jwt_extended import get_jwt_identity
+from graphql import GraphQLError
 
 from app.database import db
 from app.graphql.inputs.chatroom import ChatroomInput
@@ -18,23 +19,21 @@ class CreateChatroom(graphene.Mutation):
         # find the users based on the username and get the IDs from them
         firstId = arguments.get("firstId", None)
         secondId = arguments.get("secondId", None)
-
-        # get the ID of the user
-        username = get_jwt_identity()
-        user = db.users.find_one({"username": username})
-        userIdentity = str(user["_id"])
+        name = arguments["name"]
 
         if not firstId:
-            firstId = userIdentity
+            return GraphQLError("Missing firstId")
         elif not secondId:
-            secondId = userIdentity
+            return GraphQLError("Missing secondId")
+        elif not name:
+            return GraphQLError("Missing name")
 
         timestamp = datetime.utcnow()
 
         inserted_id = db.chatrooms.insert_one({
             "users": [firstId, secondId],
             "timestamp": timestamp,
-            "name": username,
+            "name": name,
         }).inserted_id
 
-        return ChatroomSchema(_id=inserted_id, timestamp=timestamp, name=username)
+        return ChatroomSchema(_id=inserted_id, timestamp=timestamp, name=name)

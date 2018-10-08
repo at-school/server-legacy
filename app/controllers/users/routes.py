@@ -1,12 +1,14 @@
+from bson.objectid import ObjectId
 from flask import jsonify, request
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
+from flask_socketio import close_room, emit, join_room, leave_room, send
 
 from app.controllers.errors import bad_request
 from app.controllers.users import bp
 from app.database import db
 from app.decorators import teacher_required
 
-from bson.objectid import ObjectId
+from ... import socketio
 
 
 @jwt_required
@@ -58,3 +60,25 @@ def editBio():
     except KeyError:
         return bad_request("Wrong arguments.")
     return bad_request("There is an internal server error. Please contact the IT support.")
+
+
+@socketio.on('activetimes', namespace='/activetime')
+@jwt_required
+def active_time(data):
+    """
+    Track the activity of the user
+    activeType:
+        - join: user joining a room
+        - create: user opening a room (socket connection)
+    userId: the id of the user
+    """
+    activeType = data["activeType"]
+
+    if activeType == "create":
+        join_room("activetime:" + get_jwt_identity())
+        return False
+
+
+@socketio.on('disconnect', namespace='/activetime')
+def test_disconnect():
+    close_room("activetime:" + get_jwt_identity(), "/activetime")
