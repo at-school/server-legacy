@@ -1,4 +1,4 @@
-from app import create_app
+from app import create_app, socketio
 # from app.models import User, Message, GloveEmbedding, Line, Day, Line_Schedule, Falcuty, Class
 # from app.controllers.emojifier.helpers import emojifier_setup
 # from app.controllers.schedule.helpers import schedule_setup, setup_line_time
@@ -31,6 +31,7 @@ def make_shell_context():
     }
 
 
+
 # with app.app_context():
 #     try: 
 #         schedule_setup(db, Day, Line, Line_Schedule)
@@ -39,4 +40,4 @@ def make_shell_context():
 #     except: 
 #         print("Already created")
 
-app.run(host='0.0.0.0')
+socketio.run(app, debug=True)

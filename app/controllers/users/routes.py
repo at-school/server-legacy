@@ -9,6 +9,7 @@ from app.database import db
 from app.decorators import teacher_required
 
 from ... import socketio
+import oauth2client
 
 
 @jwt_required
@@ -77,7 +78,12 @@ def active_time(data):
     if activityType == "join":
         userIdentity = data["userIdentity"]
         join_room(userIdentity)
-        return False
+        print("User " + get_jwt_identity() + " connected")
+
+        # notify all the room that user just goes online
+        db.users.update({'_id': ObjectId(get_jwt_identity())}, {
+                        "$set": {"active": True}}, upsert=False)
+        emit("userOnline", {"newUserId": userIdentity}, room="userStatus:" + get_jwt_identity())
 
     if activityType == "deleteChatroom":
         otherUser = data["otherUser"]
@@ -88,13 +94,26 @@ def active_time(data):
     if activityType == "createChatroom":
         otherUser = data["otherUser"]
         createChatroom = data["createChatroom"]
-        print("New created chatroom: ", end="")
-        print(createChatroom)
-        print("From id" + otherUser)
+
         emit("createChatroom", {
              "createChatroom": createChatroom}, room=otherUser)
 
+    if activityType == "joinUserStatus":
+        users = data["users"]
+        for user in users:
+            join_room("userStatus:" + user)
 
-@socketio.on('disconnect', namespace='/activetime')
+        return False
+
+    if activityType == "leaveUserStatus":
+        leave_room(get_jwt_identity())
+        return False
+
+
+@socketio.on('disconnect', namespace='/user')
+@jwt_required
 def test_disconnect():
-    pass
+    db.users.update({'_id': ObjectId(get_jwt_identity())}, {
+                    "$set": {"active": False}}, upsert=False)
+    print("User " + get_jwt_identity() + " disconnected")
+    emit("userOffline", {"leaveUserId": get_jwt_identity()}, room="userStatus:" + get_jwt_identity())

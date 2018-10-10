@@ -23,6 +23,7 @@ class UserSchema(graphene.ObjectType):
     chatrooms = graphene.List(lambda: ChatroomSchema)
     latestChatroom = graphene.List(lambda: ChatroomSchema)
     studentClassroom = graphene.List(lambda: ClassroomSchema)
+    active = graphene.Boolean()
     _id = graphene.ID()
 
     def resolve_classrooms(self, info):
