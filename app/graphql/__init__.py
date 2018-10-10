@@ -36,6 +36,7 @@ from app.graphql.mutations.createClassroom import CreateClassroom
 from app.graphql.mutations.removeClassroom import RemoveClassroom
 from app.graphql.mutations.editClassroom import EditClassroom
 from app.graphql.mutations.createChatRoom import CreateChatroom
+from app.graphql.mutations.removeChatroom import RemoveChatroom
 from app.graphql.mutations.createMessage import CreateMessage
 from app.graphql.mutations.addStudentToClassroom import AddStudentToClassroom
 from app.graphql.mutations.removeStudentFromClassroom import RemoveStudentFromClassroom
@@ -54,6 +55,7 @@ class Mutation(graphene.ObjectType):
     removeStudentFromClassroom = RemoveStudentFromClassroom.Field()
     createSkill = CreateSkill.Field()
     removeSkill = RemoveSkill.Field()
+    removeChatroom = RemoveChatroom.Field()
 
 
 class Query(graphene.ObjectType):
@@ -75,11 +77,11 @@ class Query(graphene.ObjectType):
     def resolve_user(self, info, arguments):
         users = None
         if arguments.get("_id", None):
-            users = list(db.users.find({"_id": ObjectId(arguments["_id"])}, {"activities": 0}))
+            users = list(db.users.find(
+                {"_id": ObjectId(arguments["_id"])}, {"activities": 0}))
         else:
             users = list(db.users.find(arguments, {"activities": 0}))
 
-        print(users)
         return map(lambda i: UserSchema(**i), users)
 
     def resolve_classroom(self, info, arguments):
@@ -93,7 +95,7 @@ class Query(graphene.ObjectType):
             with open(os.path.join(os.getcwd(), "class_images", str(classroom_id) + ".txt"), 'r') as f:
                 classroom["avatar"] = f.read()
                 classrooms1.append(classroom)
-                
+
         return map(lambda i: ClassroomSchema(**i), classrooms1)
 
     def resolve_chatroom(self, info, arguments):

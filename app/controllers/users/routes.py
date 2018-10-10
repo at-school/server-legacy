@@ -62,7 +62,7 @@ def editBio():
     return bad_request("There is an internal server error. Please contact the IT support.")
 
 
-@socketio.on('activetimes', namespace='/activetime')
+@socketio.on('user', namespace='/user')
 @jwt_required
 def active_time(data):
     """
@@ -72,13 +72,29 @@ def active_time(data):
         - create: user opening a room (socket connection)
     userId: the id of the user
     """
-    activeType = data["activeType"]
+    activityType = data["activityType"]
 
-    if activeType == "create":
-        join_room("activetime:" + get_jwt_identity())
+    if activityType == "join":
+        userIdentity = data["userIdentity"]
+        join_room(userIdentity)
         return False
+
+    if activityType == "deleteChatroom":
+        otherUser = data["otherUser"]
+        chatroomId = data["chatroomId"]
+        print("Notify to delete %s from %s" % (chatroomId, otherUser))
+        emit("deleteChatroom", {"chatroomId": chatroomId}, room=otherUser)
+
+    if activityType == "createChatroom":
+        otherUser = data["otherUser"]
+        createChatroom = data["createChatroom"]
+        print("New created chatroom: ", end="")
+        print(createChatroom)
+        print("From id" + otherUser)
+        emit("createChatroom", {
+             "createChatroom": createChatroom}, room=otherUser)
 
 
 @socketio.on('disconnect', namespace='/activetime')
 def test_disconnect():
-    close_room("activetime:" + get_jwt_identity(), "/activetime")
+    pass
