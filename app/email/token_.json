@@ -1,0 +1,18 @@
+{
+	"token_expiry": null,
+	"user_agent": null,
+	"revoke_uri": "https://oauth2.googleapis.com/revoke",
+	"id_token": null,
+	"id_token_jwt": null,
+	"token_response": {
+		"access_token": "ya29.GlwwBmtnMFjEYF6qCp0FQqZ6MUyiDPlAeNLqKLDbzoNq6YrJXtkFrCWnpWa5f_E8IkYxguWJkGo1HQLPBNUreWd8NcIFvb0lNe4nNjQKIdF8SvdStdD7PlotW2DHGA",
+		"expires_in": null,
+		"scope": "https://mail.google.com/",
+		"token_type": "Bearer"
+	},
+	"scopes": ["https://mail.google.com/"],
+	"token_info_uri": "https://oauth2.googleapis.com/tokeninfo",
+	"invalid": false,
+	"_class": "OAuth2Credentials",
+	"_module": "oauth2client.client"
+}
