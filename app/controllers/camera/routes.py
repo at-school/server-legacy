@@ -1,5 +1,6 @@
 import base64
 import os
+import time
 from calendar import day_name
 from datetime import datetime, timedelta
 
@@ -8,6 +9,7 @@ import jwt
 import numpy as np
 import pymongo
 from bson.objectid import ObjectId
+from dateutil.parser import parse
 from flask import current_app, jsonify, redirect, request, url_for
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from PIL import Image
@@ -16,6 +18,17 @@ from app.controllers.camera import bp
 from app.controllers.errors import bad_request
 from app.database import db
 from app.models import User
+
+
+def getTimeDifference(time1, time2):
+    """
+        Return minutes difference between two time
+        time1, time2: datetime object
+    """
+    d1_ts = time.mktime(time1.timetuple())
+    d2_ts = time.mktime(time2.timetuple())
+
+    return int(int(d2_ts-d1_ts) / 60)
 
 
 @bp.route("/camera/upload", methods=["POST"])
@@ -67,12 +80,14 @@ def upload():
                 if (result):
                     user = users_have_encodings[index]
                     people_found.append(user["student"])
-
         if (people_found):
             studentUpdated = []
+            minsDiff = getTimeDifference(parse(data["startTime"]), parse(
+                data["current"]).replace(tzinfo=None))
             for i in people_found:
+
                 result = db.scheduleDetails.update({"_id": ObjectId(
-                    scheduleId), "students._id": i, "students.inClass": False}, {"$set": {"students.$.inClass": True}})
+                    scheduleId), "students._id": i, "students.inClass": False}, {"$set": {"students.$.inClass": True, "students.$.minsLate": minsDiff}})
                 if (result["nModified"] > 0):
                     studentUpdated.append(i)
             now = datetime.now()
@@ -87,9 +102,10 @@ def upload():
                 activity["Id"] = str(insertedId)
                 del activity["_id"]
                 activity["timestamp"] = str(now).split(".")[0]
+                print(studentUpdated)
                 return jsonify(
                     {
-                        "studentList": studentUpdated,
+                        "studentList": [dict(Id=studentId, minsLate=minsDiff) for studentId in studentUpdated],
                         "activity": activity
                     }
                 )

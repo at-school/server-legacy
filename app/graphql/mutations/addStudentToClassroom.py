@@ -22,5 +22,5 @@ class AddStudentToClassroom(graphene.Mutation):
                              '$push': {'students': arguments["studentId"]}})
         db.users.update({'_id': ObjectId(arguments["studentId"])}, {
                              '$push': {'studentClassroom': arguments["classId"]}})
-        user = db.users.find_one({"_id": ObjectId(arguments["studentId"])})
+        user = db.users.find_one({"_id": ObjectId(arguments["studentId"])}, {"activities": 0})
         return UserSchema(**user)

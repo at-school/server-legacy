@@ -15,15 +15,15 @@ class CreateClassroom(graphene.Mutation):
     Output = ClassroomSchema
 
     def mutate(self, info, arguments):
-        arguments["teacherUsername"] = get_jwt_identity()
+        arguments["teacherId"] = get_jwt_identity()
         arguments["students"] = []
 
         # get and delete avatar in order to save it in local server
         avatar = arguments["avatar"]
         del arguments["avatar"]
         
-        if not arguments["teacherUsername"]:
-            arguments["teacherUsername"] = "anhanhvina"
+        if not arguments["teacherId"]:
+            arguments["teacherId"] = "anhanhvina"
         inserted_id = db.classrooms.insert_one(arguments).inserted_id
         class_image_path = os.path.join(os.getcwd(), "class_images", str(inserted_id) + ".txt")
 

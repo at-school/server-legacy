@@ -29,7 +29,7 @@ class UserSchema(graphene.ObjectType):
 
     def resolve_classrooms(self, info):
         classrooms = list(db.classrooms.find(
-            {"teacherUsername": self.username}))
+            {"teacherId": str(self._id)}))
 
         classrooms1 = []
         for classroom in classrooms:
@@ -37,6 +37,37 @@ class UserSchema(graphene.ObjectType):
             with open(os.path.join(os.getcwd(), "class_images", str(classroom_id) + ".txt"), 'r') as f:
                 classroom["avatar"] = f.read()
                 classrooms1.append(classroom)
+        print(len(classrooms1))
+        return map(lambda i: ClassroomSchema(**i), classrooms1)
+
+    def resolve_studentClassroom(self, info):
+        classroomIds = list(self.studentClassroom)
+        if not classroomIds:
+            return []
+        
+        classrooms = list(db.classrooms.find(
+            {"$or": [dict(_id=ObjectId(classroomId)) for classroomId in classroomIds]}))
+
+        classrooms1 = []
+        for classroom in classrooms:
+            classroom_id = str(classroom["_id"])
+            with open(os.path.join(os.getcwd(), "class_images", str(classroom_id) + ".txt"), 'r') as f:
+                classroom["avatar"] = f.read()
+                classrooms1.append(classroom)
+        print(len(classrooms1))
+        return map(lambda i: ClassroomSchema(**i), classrooms1)
+
+    def resolve_student(self, info):
+        classrooms = list(db.classrooms.find(
+            {"teacherId": str(self._id)}))
+
+        classrooms1 = []
+        for classroom in classrooms:
+            classroom_id = str(classroom["_id"])
+            with open(os.path.join(os.getcwd(), "class_images", str(classroom_id) + ".txt"), 'r') as f:
+                classroom["avatar"] = f.read()
+                classrooms1.append(classroom)
+        print(len(classrooms1))
         return map(lambda i: ClassroomSchema(**i), classrooms1)
 
     def resolve_chatrooms(self, info):
@@ -45,7 +76,8 @@ class UserSchema(graphene.ObjectType):
         returnedChatrooms = []
 
         for room in chatrooms:
-            if str(ObjectId(self._id)) in room["users"]:
+            print(room)
+            if str(self._id) in room["users"]:
                 returnedChatrooms.append(room)
 
         return map(lambda room: ChatroomSchema(_id=room["_id"], name=room["name"]), returnedChatrooms)

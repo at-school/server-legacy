@@ -8,7 +8,7 @@ class ClassroomSchema(graphene.ObjectType):
     name = graphene.String()
     description = graphene.String()
     avatar = graphene.String()
-    teacherUsername = graphene.String()
+    teacherId = graphene.String()
     lineId = graphene.String()
     falcutyId = graphene.String()
     students = graphene.List(lambda: UserSchema)
@@ -17,6 +17,6 @@ class ClassroomSchema(graphene.ObjectType):
         classroomData = db.classrooms.find_one({"_id": ObjectId(self._id)})
         studentList = classroomData["students"]
         studentList = map(lambda student: db.users.find_one(
-            {"_id": ObjectId(student)}),  studentList)
+            {"_id": ObjectId(student)}, {"activities": 0}),  studentList)
         return map(lambda student: UserSchema(**student), studentList)
 

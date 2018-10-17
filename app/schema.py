@@ -28,7 +28,7 @@ class UserSchema(graphene.ObjectType):
 
     def resolve_classrooms(self, info):
         classrooms = list(db.classrooms.find(
-            {"teacherUsername": self.username}))
+            {"teacherId": str(self._id)}))
         return map(lambda i: ClassroomSchema(**i), classrooms)
 
     def resolve_studentClassroom(self, info):

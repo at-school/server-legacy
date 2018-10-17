@@ -5,6 +5,6 @@ class ClassroomInput(graphene.InputObjectType):
     name = graphene.String()
     description = graphene.String()
     avatar = graphene.String()
-    teacherUsername = graphene.String()
+    teacherId = graphene.String()
     lineId = graphene.String()
     falcutyId = graphene.String()

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import graphene
+from graphql import GraphQLError
 from bson.objectid import ObjectId
 from flask_jwt_extended import get_jwt_identity
 
@@ -16,21 +17,17 @@ class CreateMessage(graphene.Mutation):
     Output = MessageSchema
 
     def mutate(self, info, arguments):
+        if not arguments["senderAvatar"]:
+            return GraphQLError("Do not have avatar")
         timestamp = datetime.utcnow()
-
-        # get the sender avatar and id
-        senderUsername = get_jwt_identity()
-        sender = db.users.find_one({"username": senderUsername})
-        senderId = str(sender["_id"])
-        senderAvatar = sender["avatar"]
 
         inserted_id = db.messages.insert_one(
             {
                 "messageContent": arguments["messageContent"],
                 "chatroomId": arguments["chatroomId"],
-                "senderId": senderId,
+                "senderId": get_jwt_identity(),
                 "timestamp": timestamp,
-                "senderAvatar": senderAvatar
+                "senderAvatar": arguments["senderAvatar"]
             }
         ).inserted_id
 
@@ -39,5 +36,5 @@ class CreateMessage(graphene.Mutation):
         }}, upsert=True)
 
         return MessageSchema(messageContent=arguments["messageContent"],
-                             _id=inserted_id, senderId=senderId,
-                             timestamp=timestamp, senderAvatar=senderAvatar)
+                             _id=inserted_id, senderId=get_jwt_identity(),
+                             timestamp=timestamp, senderAvatar=arguments["senderAvatar"])

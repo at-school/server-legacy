@@ -63,6 +63,19 @@ def editBio():
     return bad_request("There is an internal server error. Please contact the IT support.")
 
 
+@bp.route("/user/info", methods=["POST"])
+@jwt_required
+def getUserInfo():
+    try:
+        user = db.users.find_one({"_id": ObjectId(get_jwt_identity())})
+
+        return jsonify({"email": user["email"], "phone": user["phone"], "firstname": user["firstname"], "lastname": user["lastname"], "avatar": user["avatar"]})
+
+    except KeyError:
+        return bad_request("Wrong arguments.")
+    return bad_request("There is an internal server error. Please contact the IT support.")
+
+
 @socketio.on('user', namespace='/user')
 @jwt_required
 def active_time(data):
@@ -83,7 +96,8 @@ def active_time(data):
         # notify all the room that user just goes online
         db.users.update({'_id': ObjectId(get_jwt_identity())}, {
                         "$set": {"active": True}}, upsert=False)
-        emit("userOnline", {"newUserId": userIdentity}, room="userStatus:" + get_jwt_identity())
+        emit("userOnline", {"newUserId": userIdentity},
+             room="userStatus:" + get_jwt_identity())
 
     if activityType == "deleteChatroom":
         otherUser = data["otherUser"]
@@ -116,4 +130,5 @@ def test_disconnect():
     db.users.update({'_id': ObjectId(get_jwt_identity())}, {
                     "$set": {"active": False}}, upsert=False)
     print("User " + get_jwt_identity() + " disconnected")
-    emit("userOffline", {"leaveUserId": get_jwt_identity()}, room="userStatus:" + get_jwt_identity())
+    emit("userOffline", {"leaveUserId": get_jwt_identity()},
+         room="userStatus:" + get_jwt_identity())

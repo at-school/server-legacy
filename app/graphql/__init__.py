@@ -95,7 +95,7 @@ class Query(graphene.ObjectType):
             with open(os.path.join(os.getcwd(), "class_images", str(classroom_id) + ".txt"), 'r') as f:
                 classroom["avatar"] = f.read()
                 classrooms1.append(classroom)
-
+        print(classrooms1)
         return map(lambda i: ClassroomSchema(**i), classrooms1)
 
     def resolve_chatroom(self, info, arguments):
@@ -122,15 +122,16 @@ class Query(graphene.ObjectType):
             return GraphQLError("Missing class id")
 
         def isInSchedule(scheduleList):
+            """
+            Check if current time is in a certain timeframe
+            """
             if not scheduleList:
                 return False
 
             latestSchedule = scheduleList[0]
 
-            startTime = datetime.strptime(
-                latestSchedule["startTime"], "%Y-%m-%d %H:%M:%S")
-            endTime = datetime.strptime(
-                latestSchedule["endTime"], "%Y-%m-%d %H:%M:%S")
+            startTime = latestSchedule["startTime"]
+            endTime = latestSchedule["endTime"]
             currentTime = datetime.now()
             # if the current time is before the latest shedule
             if currentTime < startTime:
@@ -140,6 +141,10 @@ class Query(graphene.ObjectType):
             return False
 
         def getLine(line):
+            """
+            Get current line.
+            If there is no current line, get the next line
+            """
             day = datetime.now().weekday()
             counter = 0
             while True:
@@ -177,29 +182,24 @@ class Query(graphene.ObjectType):
             latestLine = latestLine[0]
             return ScheduleDetailsSchema(_id=str(latestLine["_id"]),
                                          line=str(arguments["line"]),
-                                         startTime=str(
-                latestLine["startTime"]),
-                endTime=str(latestLine["endTime"]),
-                classId=str(arguments["classId"]))
+                                         startTime=latestLine["startTime"],
+                                         endTime=latestLine["endTime"],
+                                         classId=str(arguments["classId"]))
         else:
             # get the start time and end time of the line
-            print("Here")
             lineData = getLine(arguments["line"])
-            print(lineData)
             studentList = db.classrooms.find_one(
-                {"teacherUsername": arguments["teacherUsername"], "lineId": lineData["line"]}, {"students": 1})
+                {"teacherId": arguments["teacherId"], "lineId": lineData["line"]}, {"students": 1})
             if not studentList:
                 return None
-            print("Here after student list")
-            studentsWithMarking = list(map(lambda student: {
-                "_id": student, "inClass": False}, studentList["students"]))
-            print("Here after students with marking")
+            studentsWithMarking = list(map(lambda student: dict(
+                _id=student, inClass=False, minsLate=0), studentList["students"]))
 
             scheduleToSave = {
                 "line": lineData["line"],
                 "students": studentsWithMarking,
-                "startTime": str(lineData["startTime"]),
-                "endTime": str(lineData["endTime"]),
+                "startTime": lineData["startTime"],
+                "endTime": lineData["endTime"],
                 "classId": arguments["classId"]
             }
 
@@ -208,8 +208,8 @@ class Query(graphene.ObjectType):
 
             return ScheduleDetailsSchema(_id=str(inserted_id),
                                          line=str(arguments["line"]),
-                                         startTime=str(lineData["startTime"]),
-                                         endTime=str(lineData["endTime"]),
+                                         startTime=lineData["startTime"],
+                                         endTime=lineData["endTime"],
                                          classId=str(arguments["classId"]))
 
         return None

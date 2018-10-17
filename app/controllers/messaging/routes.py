@@ -17,31 +17,18 @@ def join(data):
     """Sent by clients when they enter a room.
     A status message is broadcast to all people in the room."""
 
-    # get the user id
-    userId = get_jwt_identity()
+    # get activity type and user id
+    activityType = data["activityType"]
 
-    if not userId:
-        return False
+    if activityType == "join":
+        join_room(data['chatroomId'])
 
-    user = db.users.find_one({"_id": ObjectId(userId)})
-
-
-    message = data.get("messageContent", None)
-
-    room = data['chatroomId']
-    join_room(room)
-
-    if message:
+    if activityType == "newMessage":
 
         # append message to the message table
         # schema.execute(createMessageQuery(message, room))
-        print("Emitting back")
+
         emit('newMessage', {
-            "Id": data["Id"],
-            "messageContent": data["messageContent"],
-            "senderAvatar": data["senderAvatar"],
-            "senderUsername": user["username"],
-            "chatroomId": data["chatroomId"],
-            "senderId": str(userId),
-            "__typename": data["__typename"]
-        }, room=room)
+            "createMessage": data["createMessage"],
+            "chatroomId": data["chatroomId"]
+        }, room=data["chatroomId"])

@@ -10,11 +10,9 @@ class RollMarkingActivitiesSchema(graphene.ObjectType):
     timestamp = graphene.DateTime()
 
     def resolve_students(self, info):
-        activity = db.activities.find_one({"_id": ObjectId(self._id)})
-        studentList = activity["students"]
-        print(studentList)
+        studentList = self.students
         studentList = map(lambda student: db.users.find_one(
-            {"_id": ObjectId(student)}),  studentList)
+            {"_id": ObjectId(student)}, {"activities": 0}),  studentList)
         return map(lambda student: UserSchema(**student), studentList)
 
 from app.graphql.schemas.user import UserSchema
