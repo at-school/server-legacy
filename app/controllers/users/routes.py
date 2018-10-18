@@ -10,6 +10,7 @@ from app.decorators import teacher_required
 
 from ... import socketio
 import oauth2client
+from app.controllers.email.PyMail import Gmail
 
 
 @jwt_required
@@ -76,7 +77,7 @@ def getUserInfo():
     return bad_request("There is an internal server error. Please contact the IT support.")
 
 
-@socketio.on('user', namespace='/user')
+@socketio.on('user', namespace='/')
 @jwt_required
 def active_time(data):
     """
@@ -130,5 +131,8 @@ def test_disconnect():
     db.users.update({'_id': ObjectId(get_jwt_identity())}, {
                     "$set": {"active": False}}, upsert=False)
     print("User " + get_jwt_identity() + " disconnected")
+
+    gmail = Gmail(token=get_jwt_identity())
+    gmail.stopPushNotification()
     emit("userOffline", {"leaveUserId": get_jwt_identity()},
          room="userStatus:" + get_jwt_identity())

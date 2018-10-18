@@ -26,6 +26,7 @@ class UserSchema(graphene.ObjectType):
     gender = graphene.String()
     phone = graphene.String()
     active = graphene.Boolean()
+    loginedEmail = graphene.List(graphene.String)
 
     def resolve_classrooms(self, info):
         classrooms = list(db.classrooms.find(

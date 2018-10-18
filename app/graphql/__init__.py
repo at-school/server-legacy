@@ -1,6 +1,7 @@
 from datetime import datetime
 
 import os
+import json
 import graphene
 import pymongo
 from bson.objectid import ObjectId
@@ -20,6 +21,7 @@ from app.graphql.schemas.user import UserSchema
 from app.graphql.schemas.scheduleDetails import ScheduleDetailsSchema
 from app.graphql.schemas.latestLine import LatestLineSchema
 from app.graphql.schemas.rollmarkingActivities import RollMarkingActivitiesSchema
+from app.graphql.schemas.email import EmailSchema
 from app.models import User
 
 from app.graphql.inputs.schedule import ScheduleInput
@@ -30,6 +32,7 @@ from app.graphql.inputs.message import MessageInput
 from app.graphql.inputs.chatroom import ChatroomInput
 from app.graphql.inputs.scheduleDetails import ScheduleDetailsInput
 from app.graphql.inputs.rollmarkingActivities import RollMarkingActivitiesInput
+from app.graphql.inputs.email import EmailInput
 
 from app.graphql.mutations.createUser import CreateUser
 from app.graphql.mutations.createClassroom import CreateClassroom
@@ -73,6 +76,7 @@ class Query(graphene.ObjectType):
     latestLine = graphene.Field(LatestLineSchema)
     rollMarkingActivites = graphene.List(
         RollMarkingActivitiesSchema, arguments=RollMarkingActivitiesInput(required=True))
+    email = graphene.List(EmailSchema, arguments=EmailInput(required=True))
 
     def resolve_user(self, info, arguments):
         users = None
@@ -84,16 +88,37 @@ class Query(graphene.ObjectType):
 
         return map(lambda i: UserSchema(**i), users)
 
-    def resolve_classroom(self, info, arguments):
-        if arguments.get("_id", None):
-            arguments["_id"] = ObjectId(arguments["_id"])
-        classrooms = list(db.classrooms.find(arguments, {"avatar": 0}))
+    def resolve_email(self, info, arguments):
+        print(arguments)
+        if arguments["userId"]:
+            current_path = os.path.join(
+                os.getcwd(), "app", "controllers", "email", "messages", arguments["userId"] + ".json")
+            try:
+                with open(current_path, "r") as f:
+                    messages = json.load(f)
+                return [EmailSchema(dateTime=message["dateTime"],
+                                    From=message.get("From", ""),
+                                    FromEmail=message.get("From-email", ""),
+                                    subject=message.get("subject", ""),
+                                    html=message.get("html", ""),
+                                    userId=arguments["userId"],
+                                    _id=message["Id"]) for message in messages]
+            except:
+                print("In except")
+            
+        return []
 
-        classrooms1 = []
+    def resolve_classroom(self, info, arguments):
+        if arguments.getdirname("_id", None):
+            print(os.path.abspath(__file__))
+            arguments["_id"]=ObjectId(arguments["_id"])
+        classrooms=list(db.classrooms.find(arguments, {"avatar": 0}))
+
+        classrooms1=[]
         for classroom in classrooms:
-            classroom_id = str(classroom["_id"])
+            classroom_id=str(classroom["_id"])
             with open(os.path.join(os.getcwd(), "class_images", str(classroom_id) + ".txt"), 'r') as f:
-                classroom["avatar"] = f.read()
+                classroom["avatar"]=f.read()
                 classrooms1.append(classroom)
         print(classrooms1)
         return map(lambda i: ClassroomSchema(**i), classrooms1)
@@ -105,14 +130,14 @@ class Query(graphene.ObjectType):
         return map(lambda room: ChatroomSchema(_id=room["_id"], name=room["name"]), chatrooms)
 
     def resolve_message(self, info, arguments):
-        chatroomId = arguments.get("chatroomId", None)
+        chatroomId=arguments.get("chatroomId", None)
 
         if chatroomId:
-            messages = list(db.messages.find({"chatroomId": chatroomId}))
+            messages=list(db.messages.find({"chatroomId": chatroomId}))
             return map(lambda message: MessageSchema(**message), messages)
 
     def resolve_schedule(self, info, arguments):
-        schedule = list(db.schedule.find(arguments))
+        schedule=list(db.schedule.find(arguments))
 
         return map(lambda s: ScheduleSchema(**s), schedule)
 
@@ -128,11 +153,11 @@ class Query(graphene.ObjectType):
             if not scheduleList:
                 return False
 
-            latestSchedule = scheduleList[0]
+            latestSchedule=scheduleList[0]
 
-            startTime = latestSchedule["startTime"]
-            endTime = latestSchedule["endTime"]
-            currentTime = datetime.now()
+            startTime=latestSchedule["startTime"]
+            endTime=latestSchedule["endTime"]
+            currentTime=datetime.now()
             # if the current time is before the latest shedule
             if currentTime < startTime:
                 return True
@@ -145,22 +170,22 @@ class Query(graphene.ObjectType):
             Get current line.
             If there is no current line, get the next line
             """
-            day = datetime.now().weekday()
-            counter = 0
+            day=datetime.now().weekday()
+            counter=0
             while True:
-                currentLine = db.schedule.find_one(
+                currentLine=db.schedule.find_one(
                     {"line": line, "day": day_name[(day + counter) % 7]})
                 print(currentLine)
 
                 if currentLine:
-                    currentTime = datetime.now() + timedelta(days=counter)
-                    startHour, startMinute, startSecond = map(
+                    currentTime=datetime.now() + timedelta(days = counter)
+                    startHour, startMinute, startSecond=map(
                         int, currentLine["startTime"].split(":"))
-                    finishHour, finishMinute, finishSecond = map(
+                    finishHour, finishMinute, finishSecond=map(
                         int, currentLine["endTime"].split(":"))
-                    startTime = datetime(currentTime.year, currentTime.month,
+                    startTime=datetime(currentTime.year, currentTime.month,
                                          currentTime.day, startHour, startMinute, startSecond)
-                    finishTime = datetime(currentTime.year, currentTime.month,
+                    finishTime=datetime(currentTime.year, currentTime.month,
                                           currentTime.day, finishHour, finishMinute, finishSecond)
                     if not (datetime.now() > finishTime):
                         return {

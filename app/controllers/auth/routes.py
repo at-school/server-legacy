@@ -12,9 +12,9 @@ from app.models import User
 from app.graphql import schema
 import os
 from app.database import db
-from datetime import datetime
+from datetime import datetime, timedelta
 from hashlib import md5
-
+from app.controllers.email.PyMail import Gmail
 
 
 """
@@ -53,8 +53,11 @@ def signin():
             return bad_request("Incorrect username or password.")
         user = user[0]
         if User.checkPassword(user.get("password", None), password):
-            accessToken = create_access_token(identity=user)
+            expires = timedelta(days=365)
+            accessToken = create_access_token(
+                identity=user, expires_delta=expires)
             print(os.path.abspath(__file__))
+            gmail = Gmail(token=str(user.get("_id")))
             return jsonify({
                 "token": accessToken,
                 "username": user.get("username"),
