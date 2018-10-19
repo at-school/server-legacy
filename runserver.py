@@ -41,4 +41,4 @@ def make_shell_context():
 #         falcuty_setup(db, Falcuty)
 #     except:
 #         print("Already created")
-socketio.run(app, debug=True, host="0.0.0.0")
+socketio.run(app, debug=True, host="0.0.0.0", port=8080)

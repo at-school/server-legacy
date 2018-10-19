@@ -23,6 +23,7 @@ from app.controllers.email.authentication import auth
 from app.controllers.email.MailLogging import debug
 from app.controllers.email.PyMail import GetMessages, Gmail
 from app.database import db
+import time
 
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
@@ -112,9 +113,10 @@ def sendMail():
 
 
 @bp.route("/hasauth", methods=["POST"])
-@jwt_required
 def hasAuth():
-    userId = get_jwt_identity()
+    data = request.get_json()
+    userId = data["userId"]
+    print(userId)
     if not os.path.exists(os.path.dirname(__file__) + '/tokens/'+userId + '.json'):
         return jsonify({"auth": False})
     if not os.path.exists(os.path.dirname(__file__) + "/messages/" + userId + ".json"):
@@ -147,10 +149,11 @@ def getToken():
     service = auth(userId)
     userProfile = service.users().getProfile(userId="me").execute()
     userEmailAddress = userProfile["emailAddress"]
-    db.users.update({"_id": ObjectId(userId)}, {
-        "$push": {"loginedEmail": userEmailAddress}})
-
-    return redirect("http://localhost:3000/teacher/email")
+    if (userId):
+        db.users.update({"_id": ObjectId(userId)}, {
+            "$push": {"loginedEmail": userEmailAddress}})
+    flask.session.clear()
+    return redirect("http://localhost:3000/teacher/email/all")
 
 
 @bp.route('/authorize', methods=["GET", "POST"])

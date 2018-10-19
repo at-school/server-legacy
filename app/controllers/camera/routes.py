@@ -58,7 +58,6 @@ def upload():
             os.path.dirname(os.path.realpath(__file__)), filename))
         # Get face encodings for any faces in the uploaded image
         unknown_face_encodings = face_recognition.face_encodings(img)
-        gevent.sleep()
         people_found = []
 
         if len(unknown_face_encodings) > 0:
@@ -76,7 +75,6 @@ def upload():
             # compare faces
             match_results = face_recognition.compare_faces(
                 [student["encoding"] for student in users_have_encodings], unknown_face_encodings[0])
-            gevent.sleep()
 
             # get the name of all users that have the same face encodings
             for index, result in enumerate(match_results):
@@ -130,14 +128,11 @@ def save_image():
             image_data = data["imageData"]
             image_data = base64.b64decode(image_data)
             f.write(image_data)
-            gevent.sleep()
 
         userId = get_jwt_identity()
 
         img = face_recognition.load_image_file(filename)
-        gevent.sleep()
         face_encodings = face_recognition.face_encodings(img)
-        gevent.sleep()
         if len(face_encodings) != 1:
             os.remove(filename)
             return bad_request("There is no face in the photo.")

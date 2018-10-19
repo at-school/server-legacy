@@ -84,11 +84,9 @@ class Query(graphene.ObjectType):
         if arguments.get("_id", None):
             users = list(db.users.find(
                 {"_id": ObjectId(arguments["_id"])}, {"activities": 0}))
-            gevent.sleep()
 
         else:
             users = list(db.users.find(arguments, {"activities": 0}))
-            gevent.sleep()
 
         return map(lambda i: UserSchema(**i), users)
 
@@ -114,7 +112,6 @@ class Query(graphene.ObjectType):
                 gmail = Gmail(token=get_jwt_identity(), pushNotification=False)
                 historyId = db.emails.find_one(
                     {"userId": get_jwt_identity()}, {"historyId": 1}).get("historyId")
-                gevent.sleep()
                 historyInstance = gmail.getNewestEmail(historyId=historyId)
                 mails = historyInstance.get("history", [])
 
@@ -162,13 +159,13 @@ class Query(graphene.ObjectType):
                                     _id=message["Id"]) for message in messages]
             else:
                 gmail = Gmail(token=get_jwt_identity(), pushNotification=False)
-                messages_ = GetMessages(token=get_jwt_identity()).list(4)
-                gevent.sleep()
+                messages_ = GetMessages(token=get_jwt_identity()).list(20)
+
                 messageData = gmail.getMessageData(messages_, log=False)
                 historyId = messageData[0]["historyId"]
                 db.emails.update({"userId": get_jwt_identity()}, {"userId": get_jwt_identity(),
                                                                   "historyId": historyId}, upsert=True)
-                gevent.sleep()
+
                 payloads = gmail.getPayload(messageData, log=False)
                 parts = gmail.unpackPayload(payloads, log=False)
                 messages = parts
@@ -226,7 +223,7 @@ class Query(graphene.ObjectType):
                 return False
 
             latestSchedule = scheduleList[0]
-
+            
             startTime = latestSchedule["startTime"]
             endTime = latestSchedule["endTime"]
             currentTime = datetime.now()

@@ -90,6 +90,7 @@ def active_time(data):
     if activityType == "join":
         userIdentity = data["userIdentity"]
         join_room(userIdentity)
+        print("User joins room")
         # notify all the room that user just goes online
         db.users.update({'_id': ObjectId(get_jwt_identity())}, {
                         "$set": {"active": True}}, upsert=False)
@@ -120,13 +121,12 @@ def active_time(data):
         return False
 
 
-@socketio.on('disconnect', namespace='/user')
+@socketio.on('disconnect', namespace='/')
 @jwt_required
 def test_disconnect():
+    print("User disconnected")
     db.users.update({'_id': ObjectId(get_jwt_identity())}, {
                     "$set": {"active": False}}, upsert=False)
 
-    gmail = Gmail(token=get_jwt_identity())
-    gmail.stopPushNotification()
     emit("userOffline", {"leaveUserId": get_jwt_identity()},
          room="userStatus:" + get_jwt_identity())

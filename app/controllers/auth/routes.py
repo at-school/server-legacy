@@ -56,7 +56,6 @@ def signin():
             expires = timedelta(days=365)
             accessToken = create_access_token(
                 identity=user, expires_delta=expires)
-            gmail = Gmail(token=str(user.get("_id")))
             return jsonify({
                 "token": accessToken,
                 "username": user.get("username"),

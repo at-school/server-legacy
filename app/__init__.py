@@ -32,7 +32,7 @@ def create_app(config_class=Config):
 
     cors.init_app(app)
     jwt.init_app(app)
-    socketio.init_app(app)
+    socketio.init_app(app, async_mode="threading")
 
     from app.controllers.auth import bp as auth_bp
     app.register_blueprint(auth_bp)
