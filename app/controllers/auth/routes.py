@@ -56,7 +56,6 @@ def signin():
             expires = timedelta(days=365)
             accessToken = create_access_token(
                 identity=user, expires_delta=expires)
-            print(os.path.abspath(__file__))
             gmail = Gmail(token=str(user.get("_id")))
             return jsonify({
                 "token": accessToken,
@@ -79,8 +78,7 @@ def protected():
         'current_identity': get_jwt_identity(),  # test
         'current_roles': get_jwt_claims()  # ['foo', 'bar']
     }
-    print(get_jwt_claims())
-    print(get_jwt_identity())
+
     return jsonify(ret), 200
 
 
@@ -120,7 +118,6 @@ Arguments:
 def register():
     try:
         data = request.get_json()
-        print(data)
         username = data["username"]
         password = data["password"]
         password1 = data["password1"]

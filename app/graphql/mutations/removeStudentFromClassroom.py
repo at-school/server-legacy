@@ -17,7 +17,6 @@ class RemoveStudentFromClassroom(graphene.Mutation):
     Output = UserSchema
 
     def mutate(self, info, arguments):
-        print("Here")
         db.classrooms.update({'_id': ObjectId(arguments["classId"])}, {
                              '$pull': {'students': arguments["studentId"]}})
         db.users.update({'_id': ObjectId(arguments["studentId"])}, {

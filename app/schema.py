@@ -106,7 +106,6 @@ class ClassroomSchema(graphene.ObjectType):
     def resolve_students(self, info):
         classroomData = db.classrooms.find_one({"_id": ObjectId(self._id)})
         studentList = classroomData["students"]
-        print(studentList)
         studentList = map(lambda student: db.users.find_one(
             {"_id": ObjectId(student)}),  studentList)
         return map(lambda student: UserSchema(**student), studentList)
@@ -181,7 +180,6 @@ class ChatroomSchema(graphene.ObjectType):
 
     def resolve_messages(self, info):
         messages = list(db.messages.find({"chatroomId": str(self._id)}))
-        print(messages)
         return map(lambda message: MessageSchema(**message), messages)
 
     def resolve_users(self, info):
@@ -254,7 +252,6 @@ class Query(graphene.ObjectType):
             users = list(db.users.find({"_id": ObjectId(arguments["_id"])}))
         else:
             users = list(db.users.find(arguments))
-        print(users)
         return map(lambda i: UserSchema(**i), users)
 
     def resolve_classroom(self, info, arguments):
@@ -266,7 +263,6 @@ class Query(graphene.ObjectType):
     def resolve_chatroom(self, info, arguments):
         chatrooms = list(db.chatrooms.find(
             {"_id": ObjectId(arguments["_id"])}))
-        print(chatrooms)
         return map(lambda room: ChatroomSchema(_id=room["_id"], name=room["name"]), chatrooms)
 
     def resolve_message(self, info, arguments):
@@ -329,7 +325,6 @@ class AddStudentInClassroom(graphene.Mutation):
     Output = UserSchema
 
     def mutate(self, info, arguments):
-        print("Here")
         db.classrooms.update({'_id': ObjectId(arguments["classId"])}, {
                              '$push': {'students': arguments["studentId"]}})
         db.users.update({'_id': ObjectId(arguments["studentId"])}, {
@@ -349,7 +344,6 @@ class RemoveClassroom(graphene.Mutation):
     Output = ClassroomSchema
 
     def mutate(self, info, arguments):
-        print(arguments)
         if not arguments["_id"]:
             raise GraphQLError("Not the right query")
         db.classrooms.remove(ObjectId(arguments["_id"]))

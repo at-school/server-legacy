@@ -17,7 +17,6 @@ class AddStudentToClassroom(graphene.Mutation):
     Output = UserSchema
 
     def mutate(self, info, arguments):
-        print("Here")
         db.classrooms.update({'_id': ObjectId(arguments["classId"])}, {
                              '$push': {'students': arguments["studentId"]}})
         db.users.update({'_id': ObjectId(arguments["studentId"])}, {

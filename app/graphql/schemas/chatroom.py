@@ -16,7 +16,6 @@ class ChatroomSchema(graphene.ObjectType):
 
     def resolve_messages(self, info):
         messages = list(db.messages.find({"chatroomId": str(self._id)}))
-        print(messages)
         return map(lambda message: MessageSchema(**message), messages)
 
     def resolve_users(self, info):

@@ -6,7 +6,6 @@ import hashlib
 import hmac
 import json
 import os
-from flask_jwt_extended import get_jwt_identity
 
 import flask
 import google.oauth2.credentials
@@ -15,7 +14,7 @@ import googleapiclient.discovery
 import requests
 from bson.objectid import ObjectId
 from flask import Flask, jsonify, redirect, request, session, url_for
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from googleapiclient.discovery import build
 from httplib2 import Http
 
@@ -25,7 +24,6 @@ from app.controllers.email.MailLogging import debug
 from app.controllers.email.PyMail import GetMessages, Gmail
 from app.database import db
 
-from ... import socketio
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
@@ -41,7 +39,7 @@ API_VERSION = 'v1'
 @bp.route('/getmail', methods=["POST", "GET"])
 def getMail():
     data = request.get_json()
-    ID = data['studentId']
+    ID = get_jwt_identity()
     if not os.path.exists(DIR_+'tokens/'+ID+'.json'):
         session["ID"] = ID
         return jsonify({'response': 'auth'})
@@ -89,7 +87,6 @@ def getMail():
             messagesContent = [gmail.getSingleEmail(
                 mailId=messageInstance["message"]["id"]) for messageInstance in messageInstances]
 
-            print("this second email")
             messageData = gmail.getMessageData(
                 dict(messages=messagesContent), log=False)
             payloads = gmail.getPayload(messageData, log=False)
@@ -107,7 +104,6 @@ def getMail():
 @jwt_required
 def sendMail():
     data = request.get_json()
-    print(data)
     gmail = Gmail(token=get_jwt_identity())
     if data.get("email"):
         gmail.sendMessage(data["email"],
@@ -115,32 +111,23 @@ def sendMail():
     return jsonify({})
 
 
-@bp.route("/", methods=["POST", "GET"])
-def mainView():
-    if request.method == "POST":
-        data = request.get_json()
-        decoded_data = ast.literal_eval(base64.urlsafe_b64decode(
-            data["message"]["data"]).decode("ascii"))
-        emailAddress = decoded_data["emailAddress"]
-        usersIds = [str(user.get("_id", "")) for user in list(db.users.find(
-            {"loginedEmail": emailAddress}, {"_id": 1}))]
+@bp.route("/hasauth", methods=["POST"])
+@jwt_required
+def hasAuth():
+    userId = get_jwt_identity()
+    if not os.path.exists(os.path.dirname(__file__) + '/tokens/'+userId + '.json'):
+        return jsonify({"auth": False})
+    if not os.path.exists(os.path.dirname(__file__) + "/messages/" + userId + ".json"):
+        return jsonify({"auth": True, "setup": True})
 
-        for userId in usersIds:
-            socketio.emit("email", room=userId)
-
-        return jsonify({})
-
-    return "sdfsf"
+    return jsonify({"auth": True, "setup": False})
 
 
 @bp.route("/gettoken", methods=["POST", "GET"])
 def getToken():
     credentials = google.oauth2.credentials.Credentials(
         **session['credentials'])
-    print('\nCredentials ===========================')
-    for attr, value in credentials.__dict__.items():
-        print('\t', attr, value)
-    print('=========================== Credentials\n')
+
     cred = credentials_to_dict(credentials)
     a = open(DIR_+'token_.json').read()
     b = json.loads(a)
@@ -151,7 +138,6 @@ def getToken():
         else:
             b[key] = val
     ID = session["ID"]
-    print("\n__ID__", ID, "\n")
     a = open(DIR_+'tokens/'+ID+'.json', 'w')
     json.dump(b, a)
     a.close()
@@ -169,10 +155,8 @@ def getToken():
 
 @bp.route('/authorize', methods=["GET", "POST"])
 def authorize():
-    # print('\n', os.path.exists("app/controllers/email/client_secret.json"), "\n")
     userId = flask.request.args.get("id")
     session["ID"] = userId
-    print("UserId is " + userId)
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES)
     flow.redirect_uri = url_for('email.oauth2callback', _external=True)
@@ -185,7 +169,6 @@ def authorize():
 @bp.route('/oauth2callback', methods=["POST", "GET"])
 def oauth2callback():
     state = session['state']
-    # print('\n\at oauth2Callback\n')
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES, state=state)
     flow.redirect_uri = url_for('email.oauth2callback', _external=True)

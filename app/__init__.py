@@ -1,16 +1,16 @@
+import ast
+import base64
 import os
 
-from flask import Flask, request
+import gevent
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_graphql import GraphQLView
-from flask_jwt_extended import (
-    JWTManager,
-    jwt_required,
-    get_jwt_identity
-)
+from flask_jwt_extended import JWTManager, get_jwt_identity, jwt_required
 from flask_socketio import SocketIO
 
 from app import models
+from app.database import db
 from app.graphql import schema
 from config import Config
 
@@ -46,7 +46,6 @@ def create_app(config_class=Config):
     from app.controllers.messaging import bp as messaging_bp
     app.register_blueprint(messaging_bp)
 
-
     from app.controllers.email import bp as email_bp
     app.register_blueprint(email_bp)
 
@@ -64,5 +63,21 @@ def create_app(config_class=Config):
 
     app.add_url_rule(
         '/graphql', view_func=graphql_view())
+
+    @app.route("/", methods=["POST", "GET"])
+    def mainView():
+        if request.method == "POST":
+            data = request.get_json()
+            decoded_data = ast.literal_eval(base64.urlsafe_b64decode(
+                data["message"]["data"]).decode("ascii"))
+            emailAddress = decoded_data["emailAddress"]
+            usersIds = [str(user.get("_id", "")) for user in list(db.users.find(
+                {"loginedEmail": emailAddress}, {"_id": 1}))]
+
+            for userId in usersIds:
+                socketio.emit("email", room=userId)
+
+            return jsonify({})
+        return "sdfsdf"
 
     return app

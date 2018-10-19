@@ -38,7 +38,6 @@ class UserSchema(graphene.ObjectType):
             with open(os.path.join(os.getcwd(), "class_images", str(classroom_id) + ".txt"), 'r') as f:
                 classroom["avatar"] = f.read()
                 classrooms1.append(classroom)
-        print(len(classrooms1))
         return map(lambda i: ClassroomSchema(**i), classrooms1)
 
     def resolve_studentClassroom(self, info):
@@ -55,7 +54,6 @@ class UserSchema(graphene.ObjectType):
             with open(os.path.join(os.getcwd(), "class_images", str(classroom_id) + ".txt"), 'r') as f:
                 classroom["avatar"] = f.read()
                 classrooms1.append(classroom)
-        print(len(classrooms1))
         return map(lambda i: ClassroomSchema(**i), classrooms1)
 
     def resolve_student(self, info):
@@ -68,7 +66,6 @@ class UserSchema(graphene.ObjectType):
             with open(os.path.join(os.getcwd(), "class_images", str(classroom_id) + ".txt"), 'r') as f:
                 classroom["avatar"] = f.read()
                 classrooms1.append(classroom)
-        print(len(classrooms1))
         return map(lambda i: ClassroomSchema(**i), classrooms1)
 
     def resolve_chatrooms(self, info):
@@ -77,7 +74,6 @@ class UserSchema(graphene.ObjectType):
         returnedChatrooms = []
 
         for room in chatrooms:
-            print(room)
             if str(self._id) in room["users"]:
                 returnedChatrooms.append(room)
 

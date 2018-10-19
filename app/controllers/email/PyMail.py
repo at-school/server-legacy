@@ -159,8 +159,7 @@ class Gmail:
                     if name == 'Subject' or name == "subject":
                         parts['Subject'] = value
                     if name == 'From':
-                        print("From")
-                        print(value)
+
                         if '<' in value:
                             FROM, EMAIL = value.split('<')
                             parts['From'] = FROM[:-1]
@@ -197,7 +196,6 @@ class Gmail:
             message['to'] = receiver
             message['from'] = "me"
             message['subject'] = subject
-            print("message has " + subject)
             return {'raw': base64.urlsafe_b64encode(
                 message.as_bytes()).decode()}
 

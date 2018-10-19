@@ -18,7 +18,6 @@ class RemoveClassroom(graphene.Mutation):
     Output = ClassroomSchema
 
     def mutate(self, info, arguments):
-        print(arguments)
         if not arguments["_id"]:
             raise GraphQLError("Not the right query")
         db.classrooms.remove(ObjectId(arguments["_id"]))

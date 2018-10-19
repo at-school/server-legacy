@@ -27,7 +27,6 @@ def addStudents():
         db.scheduleDetails.update({"_id": ObjectId(scheduleId)}, {"$push": {"students": {
                                   "$each": list(map(lambda student: {"_id": student, "inClass": False, "minsLate": 0}, studentList))}}})
 
-        print(studentList)
         return jsonify({"studentList": studentList})
     except KeyError:
         return bad_request("Wrong arguments.")

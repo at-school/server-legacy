@@ -10,7 +10,8 @@ from flask_jwt_extended import get_jwt_identity
 from graphql import GraphQLError
 from datetime import datetime, timedelta
 from calendar import day_name
-
+from app.controllers.email.PyMail import GetMessages, Gmail
+import gevent
 
 from app.database import db
 from app.graphql.schemas.chatroom import ChatroomSchema
@@ -83,19 +84,96 @@ class Query(graphene.ObjectType):
         if arguments.get("_id", None):
             users = list(db.users.find(
                 {"_id": ObjectId(arguments["_id"])}, {"activities": 0}))
+            gevent.sleep()
+
         else:
             users = list(db.users.find(arguments, {"activities": 0}))
+            gevent.sleep()
 
         return map(lambda i: UserSchema(**i), users)
 
     def resolve_email(self, info, arguments):
-        print(arguments)
         if arguments["userId"]:
             current_path = os.path.join(
                 os.getcwd(), "app", "controllers", "email", "messages", arguments["userId"] + ".json")
-            try:
-                with open(current_path, "r") as f:
+            if (os.path.exists(current_path)):
+                if arguments.get("_id", False):
+                    with open(current_path) as f:
+                        messages = json.load(f)
+                        messages = [
+                            message for message in messages if message["Id"] == arguments["_id"]]
+                        return [EmailSchema(dateTime=message["dateTime"],
+                                            From=message.get("From", ""),
+                                            FromEmail=message.get(
+                                                "From-email", ""),
+                                            subject=message.get("Subject", ""),
+                                            html=message.get("html", ""),
+                                            userId=arguments["userId"],
+                                            _id=message["Id"]) for message in messages]
+
+                gmail = Gmail(token=get_jwt_identity(), pushNotification=False)
+                historyId = db.emails.find_one(
+                    {"userId": get_jwt_identity()}, {"historyId": 1}).get("historyId")
+                gevent.sleep()
+                historyInstance = gmail.getNewestEmail(historyId=historyId)
+                mails = historyInstance.get("history", [])
+
+                messages = []
+                with open(current_path) as f:
                     messages = json.load(f)
+                messagesIds = [message["Id"] for message in messages]
+                setHistoryId = False
+                for message in mails:
+                    messageInstances = message["messagesAdded"]
+                    messagesContent = []
+                    for messageInstance in messageInstances:
+                        try:
+                            messageTemp = gmail.getSingleEmail(
+                                mailId=messageInstance["message"]["id"])
+                            if messageTemp.get("error", False):
+                                continue
+                            if "SPAM" in messageTemp["labelIds"]:
+                                continue
+                            if "INBOX" in messageTemp["labelIds"]:
+                                if messageTemp.get("historyId") and not setHistoryId:
+                                    db.emails.update({"userId": get_jwt_identity()}, {
+                                        "userId": get_jwt_identity(), "historyId": messageTemp.get("historyId")}, upsert=True)
+                                    setHistoryId = True
+                                messagesContent.append(messageTemp)
+                        except:
+                            pass
+
+                    messageData = gmail.getMessageData(
+                        dict(messages=messagesContent), log=False)
+                    payloads = gmail.getPayload(messageData, log=False)
+                    parts = gmail.unpackPayload(payloads, log=False)
+                    parts = [part for part in parts if part["Id"]
+                             not in messagesIds]
+                    messages = parts + messages
+
+                    with open(current_path, 'w') as outfile:
+                        json.dump(messages, outfile)
+                return [EmailSchema(dateTime=message["dateTime"],
+                                    From=message.get("From", ""),
+                                    FromEmail=message.get("From-email", ""),
+                                    subject=message.get("Subject", ""),
+                                    html=message.get("html", ""),
+                                    userId=arguments["userId"],
+                                    _id=message["Id"]) for message in messages]
+            else:
+                gmail = Gmail(token=get_jwt_identity(), pushNotification=False)
+                messages_ = GetMessages(token=get_jwt_identity()).list(4)
+                gevent.sleep()
+                messageData = gmail.getMessageData(messages_, log=False)
+                historyId = messageData[0]["historyId"]
+                db.emails.update({"userId": get_jwt_identity()}, {"userId": get_jwt_identity(),
+                                                                  "historyId": historyId}, upsert=True)
+                gevent.sleep()
+                payloads = gmail.getPayload(messageData, log=False)
+                parts = gmail.unpackPayload(payloads, log=False)
+                messages = parts
+                with open(current_path, 'w') as outfile:
+                    json.dump(messages, outfile)
                 return [EmailSchema(dateTime=message["dateTime"],
                                     From=message.get("From", ""),
                                     FromEmail=message.get("From-email", ""),
@@ -103,41 +181,35 @@ class Query(graphene.ObjectType):
                                     html=message.get("html", ""),
                                     userId=arguments["userId"],
                                     _id=message["Id"]) for message in messages]
-            except:
-                print("In except")
-            
         return []
 
     def resolve_classroom(self, info, arguments):
-        if arguments.getdirname("_id", None):
-            print(os.path.abspath(__file__))
-            arguments["_id"]=ObjectId(arguments["_id"])
-        classrooms=list(db.classrooms.find(arguments, {"avatar": 0}))
+        if arguments.get("_id", None):
+            arguments["_id"] = ObjectId(arguments["_id"])
+        classrooms = list(db.classrooms.find(arguments, {"avatar": 0}))
 
-        classrooms1=[]
+        classrooms1 = []
         for classroom in classrooms:
-            classroom_id=str(classroom["_id"])
+            classroom_id = str(classroom["_id"])
             with open(os.path.join(os.getcwd(), "class_images", str(classroom_id) + ".txt"), 'r') as f:
-                classroom["avatar"]=f.read()
+                classroom["avatar"] = f.read()
                 classrooms1.append(classroom)
-        print(classrooms1)
         return map(lambda i: ClassroomSchema(**i), classrooms1)
 
     def resolve_chatroom(self, info, arguments):
         chatrooms = list(db.chatrooms.find(
             {"_id": ObjectId(arguments["_id"])}))
-        print(chatrooms)
         return map(lambda room: ChatroomSchema(_id=room["_id"], name=room["name"]), chatrooms)
 
     def resolve_message(self, info, arguments):
-        chatroomId=arguments.get("chatroomId", None)
+        chatroomId = arguments.get("chatroomId", None)
 
         if chatroomId:
-            messages=list(db.messages.find({"chatroomId": chatroomId}))
+            messages = list(db.messages.find({"chatroomId": chatroomId}))
             return map(lambda message: MessageSchema(**message), messages)
 
     def resolve_schedule(self, info, arguments):
-        schedule=list(db.schedule.find(arguments))
+        schedule = list(db.schedule.find(arguments))
 
         return map(lambda s: ScheduleSchema(**s), schedule)
 
@@ -153,11 +225,11 @@ class Query(graphene.ObjectType):
             if not scheduleList:
                 return False
 
-            latestSchedule=scheduleList[0]
+            latestSchedule = scheduleList[0]
 
-            startTime=latestSchedule["startTime"]
-            endTime=latestSchedule["endTime"]
-            currentTime=datetime.now()
+            startTime = latestSchedule["startTime"]
+            endTime = latestSchedule["endTime"]
+            currentTime = datetime.now()
             # if the current time is before the latest shedule
             if currentTime < startTime:
                 return True
@@ -170,22 +242,21 @@ class Query(graphene.ObjectType):
             Get current line.
             If there is no current line, get the next line
             """
-            day=datetime.now().weekday()
-            counter=0
+            day = datetime.now().weekday()
+            counter = 0
             while True:
-                currentLine=db.schedule.find_one(
+                currentLine = db.schedule.find_one(
                     {"line": line, "day": day_name[(day + counter) % 7]})
-                print(currentLine)
 
                 if currentLine:
-                    currentTime=datetime.now() + timedelta(days = counter)
-                    startHour, startMinute, startSecond=map(
+                    currentTime = datetime.now() + timedelta(days=counter)
+                    startHour, startMinute, startSecond = map(
                         int, currentLine["startTime"].split(":"))
-                    finishHour, finishMinute, finishSecond=map(
+                    finishHour, finishMinute, finishSecond = map(
                         int, currentLine["endTime"].split(":"))
-                    startTime=datetime(currentTime.year, currentTime.month,
+                    startTime = datetime(currentTime.year, currentTime.month,
                                          currentTime.day, startHour, startMinute, startSecond)
-                    finishTime=datetime(currentTime.year, currentTime.month,
+                    finishTime = datetime(currentTime.year, currentTime.month,
                                           currentTime.day, finishHour, finishMinute, finishSecond)
                     if not (datetime.now() > finishTime):
                         return {
@@ -248,7 +319,6 @@ class Query(graphene.ObjectType):
             schedule = list(db.schedule.find(
                 {"day": day_name[(currentDay + counter) % 7]}))
             if not schedule:
-                print("does not have any schedule")
                 counter += 1
                 continue
 

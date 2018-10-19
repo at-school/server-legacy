@@ -17,7 +17,6 @@ class Debug:
 		if cwd:
 			dir = cwd
 		directory = '{}/{}{}.{}'.format(dir, directory, name, extension)
-		print(name, 'was added to', directory)
 		file = open(directory, 'w')
 		if contentType == dict or contentType == list:
 			json.dump(content, file)

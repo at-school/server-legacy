@@ -22,7 +22,6 @@ def searchUser():
         users = list(db.users.find({"username": {"$regex": searchPattern}}))
         users = list(map(lambda user: {"_id": str(
             user["_id"]), "firstname": user["firstname"], "lastname": user["lastname"], "avatar": user["avatar"]}, users))
-        print(users)
         return jsonify({"data": users})
     except KeyError:
         return bad_request("Wrong arguments.")
@@ -40,7 +39,6 @@ def searchStudent():
             {"username": {"$regex": searchPattern}, "accessLevel": 1}))
         users = list(map(lambda user: {"Id": str(
             user["_id"]), "name": user["firstname"] + " " + user["lastname"], "avatar": user["avatar"]}, users))
-        print(users)
         return jsonify({"data": users})
     except KeyError:
         return bad_request("Wrong arguments.")
@@ -92,8 +90,6 @@ def active_time(data):
     if activityType == "join":
         userIdentity = data["userIdentity"]
         join_room(userIdentity)
-        print("User " + get_jwt_identity() + " connected")
-
         # notify all the room that user just goes online
         db.users.update({'_id': ObjectId(get_jwt_identity())}, {
                         "$set": {"active": True}}, upsert=False)
@@ -103,7 +99,6 @@ def active_time(data):
     if activityType == "deleteChatroom":
         otherUser = data["otherUser"]
         chatroomId = data["chatroomId"]
-        print("Notify to delete %s from %s" % (chatroomId, otherUser))
         emit("deleteChatroom", {"chatroomId": chatroomId}, room=otherUser)
 
     if activityType == "createChatroom":
@@ -130,7 +125,6 @@ def active_time(data):
 def test_disconnect():
     db.users.update({'_id': ObjectId(get_jwt_identity())}, {
                     "$set": {"active": False}}, upsert=False)
-    print("User " + get_jwt_identity() + " disconnected")
 
     gmail = Gmail(token=get_jwt_identity())
     gmail.stopPushNotification()
