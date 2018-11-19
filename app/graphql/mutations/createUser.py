@@ -31,7 +31,7 @@ class CreateUser(graphene.Mutation):
             "studentClassroom": [],
             "activities": [],
             "phone": arguments["phone"],
-            
+
         }).inserted_id)
         timestamp = datetime.utcnow()
         inserted_id = str(db.chatrooms.insert_one({
@@ -52,4 +52,4 @@ class CreateUser(graphene.Mutation):
             }
         )
 
-        return UserSchema(**arguments, avatar=u.avatar)
+        return UserSchema(avatar=u.avatar, **arguments)

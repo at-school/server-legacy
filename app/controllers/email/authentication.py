@@ -12,11 +12,10 @@ def auth(token_):
     """ Authenticates user from a token.json file enabling
             get request from the Google APIs """
     store = file.Storage(
-        '/Users/anhpham/Desktop/projects/at-school/at-school-server/app/controllers/email/tokens/'+token_+'.json')
+        f"{os.getcwd()}/app/controllers/email/tokens/{token_}.json")
     creds = store.get()
     if not creds or creds.invalid:
         flow = client.flow_from_clientsecrets(
             DIR_+'client_secret.json', SCOPES)
         creds = tools.run_flow(flow, store)
     return build('gmail', 'v1', http=creds.authorize(Http()))
-
