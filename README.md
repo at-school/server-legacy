@@ -3,6 +3,7 @@
 [![License](https://img.shields.io/badge/License-MIT-orange.svg)](https://github.com/at-school/spa/license)
 [![](https://img.shields.io/badge/Version-Beta%200.1.0-brightgreen.svg)](atschool.live)
 
+> The server will only work on Linux/OS systems
 
 ## Features ##
 
@@ -16,7 +17,7 @@
 1. run `python3 -m venv venv`
 2. run `source venv/bin/activate`
 3. run `pip3 install -r requirements.txt`
-4. run `flask run --host=0.0.0.0`
+4. run `python3 runserver.py`
 
 ### Build server in Docker Container
 *   First run `build -t server:latest .` to build the image.
